@@ -2,13 +2,14 @@ import boto3
 from functools import wraps
 from config import config
 from flask import Flask, render_template, request, redirect, url_for, session
+import requests
 
 app = Flask(__name__)
 app.secret_key = config['app_secret_key']
-
+base_url = 'http://{hostname}:{port}'.format(hostname=config['backend_hostname'], port=config['backend_port'])
 cognito_client = boto3.client('cognito-idp', region_name=config['aws_region'])
 
-
+# TODO - What if access token has expired?
 def login_required(f):
     @wraps(f)
     def wrap(*args, **kwargs):
@@ -19,6 +20,22 @@ def login_required(f):
     return wrap
 
 
+@app.route('/select_rolegroupid', methods=['GET', 'POST'])
+@login_required
+def select_rolegroupid():
+    if request.method == 'GET':
+        role_groups = requests.get('{base_url}/role_groups'.format(base_url=base_url))
+        return render_template('select_rolegroupid.html', role_groups=role_groups.json()['role_groups'])
+    else:
+        user = cognito_client.get_user(
+            AccessToken=session['access_token']
+        )
+        user_sub = get_user_sub(user)
+        payload = {'role_group_id': request.form['role_group_selector']}
+        requests.post('{base_url}/users/{user_id}/rolegroupid'.format(base_url=base_url, user_id=user_sub), data=payload)
+        return redirect(url_for('index'))
+
+
 @app.route('/')
 @login_required
 def index():
@@ -26,7 +43,11 @@ def index():
         AccessToken=session['access_token']
     )
     user_sub = get_user_sub(user)
-    return render_template('index.html', sub=user_sub)
+    role_group_id = requests.get('{base_url}/users/{user_id}/rolegroupid'.format(base_url=base_url, user_id=user_sub)).json()
+    if 'role_group_id' in role_group_id and role_group_id['role_group_id']:
+        return render_template('index.html', sub=user_sub)
+    else:
+        return redirect(url_for('select_rolegroupid'))
 
 
 @app.route('/reset_password', methods=['GET', 'POST'])

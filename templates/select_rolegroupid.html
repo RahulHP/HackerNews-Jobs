@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>HN Who's hiring</title>
+</head>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+<body style="background-color: #42A5F5;">
+<nav class="navbar navbar-light navbar-expand-md">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/" style="color: rgba(255,255,255,0.9);"><strong>HN Job Tracker</strong></a>
+        <a href="/logout"><strong>Logout</strong></a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+        <form method="post">
+            {% for role in role_groups %}
+            <div class="custom-control custom-radio">
+              <input type="radio" id="{{ role.role_group_id }}" name="role_group_selector" class="custom-control-input" value="{{ role.role_group_id }}" required>
+              <label class="custom-control-label" for="{{ role.role_group_id }}"><p><strong>{{ role.role_group_name }}</strong>: {{ role.buzz_words }}</p></label>
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

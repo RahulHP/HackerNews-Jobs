@@ -9,6 +9,15 @@ app.secret_key = config['app_secret_key']
 base_url = 'http://{hostname}:{port}'.format(hostname=config['backend_hostname'], port=config['backend_port'])
 cognito_client = boto3.client('cognito-idp', region_name=config['aws_region'])
 
+STAGES = [['0', 'New', None],
+          ['1', 'Saved', 'Save Job'],
+          ['2', 'Applied', 'Applied'],
+          ['3', 'Trash', 'Trash Job']]
+
+r = requests.get('{base_url}/calendar'.format(base_url=base_url))
+MONTHS = [i['month'] for i in r.json()['results']]
+
+
 # TODO - What if access token has expired?
 def login_required(f):
     @wraps(f)
@@ -36,6 +45,22 @@ def select_rolegroupid():
         return redirect(url_for('index'))
 
 
+@app.route('/view', methods=['GET'])
+@login_required
+def view():
+    user = cognito_client.get_user(
+        AccessToken=session['access_token']
+    )
+    user_sub = get_user_sub(user)
+
+    calendar_id = request.args.get('calendar_id', MONTHS[-1])
+    stage_id = request.args.get('stage_id', 0)
+
+    requests.post('{base_url}/users/{user_id}/calendar/{calendar_id}/update_posts'.format(base_url=base_url, user_id=user_sub,calendar_id=calendar_id))
+
+    jobs = requests.get('{base_url}/users/{user_id}/calendar/{calendar_id}/stage/{stage_id}/view'.format(base_url=base_url,user_id=user_sub,calendar_id=calendar_id,stage_id=stage_id))
+    return render_template('view.html', posts=jobs.json()['results'], calendar_id=calendar_id, stage_id=stage_id, stages=STAGES, calendar=MONTHS)
+
 @app.route('/')
 @login_required
 def index():
@@ -44,11 +69,20 @@ def index():
     )
     user_sub = get_user_sub(user)
     role_group_id = requests.get('{base_url}/users/{user_id}/rolegroupid'.format(base_url=base_url, user_id=user_sub)).json()
-    if 'role_group_id' in role_group_id and role_group_id['role_group_id']:
-        return render_template('index.html', sub=user_sub)
-    else:
+    if role_group_id['role_group_id'] is None:
         return redirect(url_for('select_rolegroupid'))
+    return redirect(url_for('view'))
 
+
+@app.route('/update_post', methods=['POST'])
+def update_post_stage():
+    user = cognito_client.get_user(
+        AccessToken=session['access_token']
+    )
+    user_sub = get_user_sub(user)
+    payload = request.form
+    requests.post('{base_url}/users/{user_id}/posts'.format(base_url=base_url, user_id=user_sub), data=payload)
+    return {'code':200}
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():

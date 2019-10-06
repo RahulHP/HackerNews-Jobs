@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>HN Who's hiring</title>
+</head>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script>
+$(document).ready(function () {
+    $("#month-navigation").change(function(){
+        document.location.href = $(this).val();
+    });
+    $(".process-post").click(function () {
+        console.log("CLICKED");
+        var job_div = $(this).closest('li.list-group-item');
+        var calendar = $(this).closest('div.container').attr('id');
+        var job_id = job_div.attr('id');
+        job_div.hide();
+        $.ajax(
+            {
+                url: '{{ url_for('update_post_stage') }}',
+                data: {'calendar_id': calendar, 'stage_id': $(this).attr('id'), 'post_id':job_id},
+                type: 'POST'
+            }
+        )
+    });
+})
+</script>
+<body style="background-color: #42A5F5;">
+<nav class="navbar navbar-light navbar-expand-md">
+    <div class="container-fluid"><a class="navbar-brand" href="#" style="color: rgba(255,255,255,0.9);"><strong>HN Tracker</strong></a>
+        <div class="collapse navbar-collapse" id="navcol-1">
+            <ul class="nav navbar-nav">
+                {% for stage in stages %}
+
+                <li role="presentation" class="nav-item"><a class="nav-link {% if stage[0] == stage_id %} active {% endif %}" href="{{ url_for('view', calendar_id=calendar_id, stage_id=stage[0]) }}">{{ stage[1] }}</a></li>
+                {% endfor %}
+            </ul>
+            <form class="form-inline ml-auto">
+                <select id='month-navigation' class="custom-select form-control">
+                {% for month in calendar %}
+                <option value="{{url_for('view', calendar_id=month, stage_id=stage_id)}}" {% if month == calendar_id %} selected {% endif %}>{{month}}</option>
+                {% endfor %}
+                </select>
+            </form>
+            <a href="/logout"><strong>Logout</strong></a>
+        </div>
+    </div>
+</nav>
+
+{% if posts[0] is not none %}
+<div class="container" id="{{ calendar_id }}">
+<ul class="list-group list-group-flush">
+
+    {% for job in posts %}
+    <li class="list-group-item" id="{{ job.post_id }}">
+
+        <div class="row">
+        <div class="col-9">
+            <p>{{ job.post_text|safe }}</p>
+        </div>
+        <div class="col text-center col-3">
+            <h1><span class="badge badge-pill badge-primary">{{ job.score }}</span></h1>
+            <div role="group" class="btn-group-vertical btn-group-sm btn-group-vertical">
+                {% for stage in stages[1:] %}
+                {% if stage[0] != stage_id %}
+                    <button class="process-post btn btn-primary text-nowrap border rounded" type="button" id="{{stage[0]}}">{{stage[2]}}</button>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        </div>
+
+        <div class="row">
+            <div class="col-6">
+                <p class="text-center"><a href="https://news.ycombinator.com/user?id={{ job.poster_id }}"> {{ job.poster_id }} </a> </p>
+            </div>
+            <div class="col-6">
+                <p class="text-center"><a href="https://news.ycombinator.com/item?id={{ job.post_id }}"> {{ job.post_time }} </a> </p>
+            </div>
+        </div>
+
+    </li>
+    {% endfor %}
+</ul>
+</div>
+{% else %}
+    <div class="container">
+    No posts found for current calendar and stage.
+    </div>
+
+{% endif %}
+</body>
+</html>

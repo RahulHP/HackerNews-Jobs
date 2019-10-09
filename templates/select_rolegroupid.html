@@ -10,15 +10,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
-<body style="background-color: #42A5F5;">
+<body>
 <nav class="navbar navbar-light navbar-expand-md">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/" style="color: rgba(255,255,255,0.9);"><strong>HN Job Tracker</strong></a>
+        <a class="navbar-brand" href="/view"><strong>HN Job Tracker</strong></a>
         <a href="/logout"><strong>Logout</strong></a>
     </div>
 </nav>
 
 <div class="container">
+    <div class="row">
+        <p>Please select the type of roles you are interested in. The jobs will be ranked according to the accompanying buzz words.</p>
+        <p>After pressing 'Submit', jobs from the latest month will be loaded for your viewing. The first time you view a month will take some time to load.</p>
+    </div>
     <div class="row">
         <div class="col-12">
         <form method="post">

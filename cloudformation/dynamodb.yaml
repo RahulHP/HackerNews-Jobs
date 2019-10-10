@@ -1,0 +1,38 @@
+ Resources:
+  UserPostStage:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: User_Post_Stage_CloudFormation
+      AttributeDefinitions:
+        - 
+          AttributeName: user_id
+          AttributeType: S
+        -
+          AttributeName: post_id
+          AttributeType: S
+        -
+          AttributeName: calendar_stage_uuid
+          AttributeType: S  
+      BillingMode: PROVISIONED
+      KeySchema:
+        -
+          AttributeName: user_id
+          KeyType: HASH
+        -
+          AttributeName: post_id
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - 
+          IndexName: user_calendar_stage
+          KeySchema:
+            -
+              AttributeName: user_id
+              KeyType: HASH
+            -
+              AttributeName: calendar_stage_uuid
+              KeyType: RANGE 
+          Projection:
+            ProjectionType: ALL
+      ProvisionedThroughput: 
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1

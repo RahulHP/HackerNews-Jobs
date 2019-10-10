@@ -1,0 +1,28 @@
+Parameters:
+    rdsuser:
+        Type: String
+    rdspassword:
+        Type: String
+    rdsport:
+        Type: Number
+Resources:
+  RDSDatabase:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBInstanceClass: db.t2.micro
+      Engine: mysql
+      EngineVersion: 5.7.22
+      StorageType: gp2
+      MasterUsername: !Ref rdsuser
+      MasterUserPassword: !Ref rdspassword
+      Port: !Ref rdsport
+      PubliclyAccessible: true
+      AllocatedStorage: 20
+      AllowMajorVersionUpgrade: true
+      AvailabilityZone: us-east-1a
+      BackupRetentionPeriod: 0
+Outputs:
+  RDSConnectionAddress:
+    Value: !GetAtt RDSDatabase.Endpoint.Address
+  RDSPort:
+    Value: !GetAtt RDSDatabase.Endpoint.Port

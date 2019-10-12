@@ -1,0 +1,13 @@
+[Unit]
+Description=uWSGI instance to serve myproject
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/hnjobs/HackerNews-Jobs
+Environment="PATH=/home/ubuntu/miniconda3/envs/webapp/bin"
+ExecStart=/home/ubuntu/miniconda3/envs/webapp/bin/uwsgi --ini backend.ini
+
+[Install]
+WantedBy=multi-user.target

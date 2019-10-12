@@ -1,0 +1,14 @@
+Parameters:
+    keyname:
+      Type: AWS::EC2::KeyPair::KeyName
+    securitygroup:
+      Type: AWS::EC2::SecurityGroup::GroupName
+Resources:
+  CreatingLambdaLayerEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-07d0cf3af28718ef8"
+      KeyName: !Ref keyname
+      InstanceType: "t2.micro"
+      SecurityGroups:
+        - !Ref securitygroup

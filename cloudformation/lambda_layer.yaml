@@ -1,0 +1,15 @@
+Parameters:
+    ZipS3Bucket:
+      Type: String
+    ZipS3Key:
+      Type: String
+Resources:
+  LambdaLayerPython3RequestsPyMySQL:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleRuntimes:
+        - python3.6
+      Content:
+        S3Bucket: !Ref ZipS3Bucket
+        S3Key: !Ref ZipS3Key
+      Description: "Lambda Layer python3.6 requests==2.22.0 PyMySQL==0.9.3"

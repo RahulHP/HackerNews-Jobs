@@ -140,31 +140,31 @@ Resources:
 #          Id: Run_State_Machine
 #          Input: "{\"calendar_id\": \"oct_2019\"}"
 #      RoleArn: !GetAtt RuleRole.Arn
-#  RuleRole:
-#    Type: AWS::IAM::Role
-#    DependsOn:
-#      - StateMachine
-#    Properties:
-#      Description: "Role to allow Cloudwatch to call State Machine"
-#      RoleName: "Cloudwatch_Step_Function_Invocation"
-#      AssumeRolePolicyDocument:
-#        Version: "2012-10-17"
-#        Statement:
-#          - Effect: "Allow"
-#            Principal:
-#              Service:
-#                - "events.amazonaws.com"
-#            Action:
-#              - "sts:AssumeRole"
-#      Policies:
-#        -
-#          PolicyName: "Invoke_State_Machine"
-#          PolicyDocument:
-#            Version: "2012-10-17"
-#            Statement:
-#              -
-#                Effect: "Allow"
-#                Action: "states:StartExecution"
-#                Resource: !Ref StateMachine
-#
+  RuleRole:
+    Type: AWS::IAM::Role
+    DependsOn:
+      - StateMachine
+    Properties:
+      Description: "Role to allow Cloudwatch to call State Machine"
+      RoleName: "Cloudwatch_Step_Function_Invocation"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "events.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "Invoke_State_Machine"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "states:StartExecution"
+                Resource: !Ref StateMachine
+
 

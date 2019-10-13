@@ -126,20 +126,6 @@ Resources:
           - IngestingPostsArn: !GetAtt IngestingPosts.Arn
             TransformingPostsArn: !GetAtt TransformingPosts.Arn
             ScoringPostsArn: !GetAtt ScoringPosts.Arn
-#  ScheduledRule:
-#    Type: AWS::Events::Rule
-#    DependsOn:
-#      - RuleRole
-#      - StateMachine
-#    Properties:
-#      Description: "ScheduledRule"
-#      ScheduleExpression: "rate(4 hours)"
-#      State: "ENABLED"
-#      Targets:
-#        - Arn: !Ref StateMachine
-#          Id: Run_State_Machine
-#          Input: "{\"calendar_id\": \"oct_2019\"}"
-#      RoleArn: !GetAtt RuleRole.Arn
   RuleRole:
     Type: AWS::IAM::Role
     DependsOn:
@@ -166,5 +152,17 @@ Resources:
                 Effect: "Allow"
                 Action: "states:StartExecution"
                 Resource: !Ref StateMachine
-
-
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    DependsOn:
+      - RuleRole
+      - StateMachine
+    Properties:
+      Description: "ScheduledRule"
+      ScheduleExpression: "rate(4 hours)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref StateMachine
+          Id: Run_State_Machine
+          Input: "{\"calendar_id\": \"oct_2019\"}"
+          RoleArn: !GetAtt RuleRole.Arn

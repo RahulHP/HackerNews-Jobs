@@ -1,0 +1,170 @@
+Resources:
+  StepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: IAM Role to allow Step Functions to call Lambdas
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+      RoleName: HN_Step_Functions_Role
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Description: "IAM Role to allow Lambdas to use SSM"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        - "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+      RoleName: HN_Lambda_Role
+  IngestingPosts:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: ../data_ingestion/lambdas/ingesting_posts
+      Handler: ingesting_posts.lambda_handler
+      Layers:
+        - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      Role: !GetAtt IAMRole.Arn
+      Runtime: python3.6
+      Description: Ingesting Posts
+  TransformingPosts:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: ../data_ingestion/lambdas/transforming_posts
+      Handler: transforming_posts.lambda_handler
+      Layers:
+      - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      Role: !GetAtt IAMRole.Arn
+      Runtime: python3.6
+      Description: Transforming Posts
+  ScoringPosts:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: ../data_ingestion/lambdas/scoring_posts
+      Handler: scoring_posts.lambda_handler
+      Layers:
+      - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      Role: !GetAtt IAMRole.Arn
+      Runtime: python3.6
+      Description: Scoring Posts
+  StateMachine:
+    Type: "AWS::StepFunctions::StateMachine"
+    DependsOn:
+      - IngestingPosts
+      - TransformingPosts
+      - ScoringPosts
+    Properties:
+      RoleArn: !GetAtt StepFunctionRole.Arn
+      StateMachineName: Cloud_Formation_Stack
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "StartAt": "Ingest Posts",
+              "States": {
+                "Ingest Posts": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:states:::lambda:invoke",
+                  "Parameters": {
+                    "FunctionName": "${IngestingPostsArn}",
+                    "Payload": {
+                      "calendar_id.$": "$.calendar_id"
+                    }
+                  },
+                  "ResultPath": null,
+                  "Next": "Transform Posts"
+                },
+                "Transform Posts": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:states:::lambda:invoke",
+                  "Parameters": {
+                    "FunctionName": "${TransformingPostsArn}",
+                    "Payload": {
+                      "calendar_id.$": "$.calendar_id"
+                    }
+                  },
+                  "Next": "Pass Role Group",
+                  "ResultPath": null
+                },
+                "Pass Role Group": {
+                  "Type": "Pass",
+                  "Next": "Score Posts",
+                  "Result": {
+                    "role_group_id": 1
+                  },
+                  "ResultPath": "$.role_group_id"
+                },
+                "Score Posts": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:states:::lambda:invoke",
+                  "Parameters": {
+                    "FunctionName": "${ScoringPostsArn}",
+                    "Payload": {
+                      "calendar_id.$": "$.calendar_id",
+                      "role_group_id.$": "$.role_group_id.role_group_id"
+                    }
+                  },
+                  "End": true
+                }
+              }
+            }
+          - IngestingPostsArn: !GetAtt IngestingPosts.Arn
+            TransformingPostsArn: !GetAtt TransformingPosts.Arn
+            ScoringPostsArn: !GetAtt ScoringPosts.Arn
+#  ScheduledRule:
+#    Type: AWS::Events::Rule
+#    DependsOn:
+#      - RuleRole
+#      - StateMachine
+#    Properties:
+#      Description: "ScheduledRule"
+#      ScheduleExpression: "rate(4 hours)"
+#      State: "ENABLED"
+#      Targets:
+#        - Arn: !Ref StateMachine
+#          Id: Run_State_Machine
+#          Input: "{\"calendar_id\": \"oct_2019\"}"
+#      RoleArn: !GetAtt RuleRole.Arn
+#  RuleRole:
+#    Type: AWS::IAM::Role
+#    DependsOn:
+#      - StateMachine
+#    Properties:
+#      Description: "Role to allow Cloudwatch to call State Machine"
+#      RoleName: "Cloudwatch_Step_Function_Invocation"
+#      AssumeRolePolicyDocument:
+#        Version: "2012-10-17"
+#        Statement:
+#          - Effect: "Allow"
+#            Principal:
+#              Service:
+#                - "events.amazonaws.com"
+#            Action:
+#              - "sts:AssumeRole"
+#      Policies:
+#        -
+#          PolicyName: "Invoke_State_Machine"
+#          PolicyDocument:
+#            Version: "2012-10-17"
+#            Statement:
+#              -
+#                Effect: "Allow"
+#                Action: "states:StartExecution"
+#                Resource: !Ref StateMachine
+#
+

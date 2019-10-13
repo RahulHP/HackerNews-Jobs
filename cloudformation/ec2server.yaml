@@ -1,0 +1,38 @@
+Parameters:
+    keyname:
+      Type: AWS::EC2::KeyPair::KeyName
+    securitygroup:
+      Type: AWS::EC2::SecurityGroup::GroupName
+Resources:
+  Server:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: "ami-04b9e92b5572fa0d1"
+      KeyName: !Ref keyname
+      InstanceType: "t2.micro"
+      SecurityGroups:
+        - !Ref securitygroup
+      IamInstanceProfile: !Ref EC2InstanceProfile
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: Server_Instance_Profile
+      Roles:
+        - !Ref EC2Role
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: "Web_Server_IAM_Role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonCognitoReadOnly"
+        - "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"

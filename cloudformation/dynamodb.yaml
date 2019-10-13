@@ -1,0 +1,70 @@
+ Resources:
+  UserPostStage:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: User_Post_Stage_CloudFormation
+      AttributeDefinitions:
+        - 
+          AttributeName: user_id
+          AttributeType: S
+        -
+          AttributeName: post_id
+          AttributeType: S
+        -
+          AttributeName: calendar_stage_uuid
+          AttributeType: S  
+      BillingMode: PROVISIONED
+      KeySchema:
+        -
+          AttributeName: user_id
+          KeyType: HASH
+        -
+          AttributeName: post_id
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - 
+          IndexName: user_calendar_stage
+          KeySchema:
+            -
+              AttributeName: user_id
+              KeyType: HASH
+            -
+              AttributeName: calendar_stage_uuid
+              KeyType: RANGE 
+          Projection:
+            ProjectionType: ALL
+      ProvisionedThroughput: 
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+  UserLatestPosts:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: User_Latest_Post_CloudFormation
+      AttributeDefinitions:
+        -
+          AttributeName: user_id
+          AttributeType: S
+      BillingMode: PROVISIONED
+      KeySchema:
+        -
+          AttributeName: user_id
+          KeyType: HASH
+      ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+  UserRoleGroupID:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: User_RoleGroupID_CloudFormation
+      AttributeDefinitions:
+        -
+          AttributeName: user_id
+          AttributeType: S
+      BillingMode: PROVISIONED
+      KeySchema:
+        -
+          AttributeName: user_id
+          KeyType: HASH
+      ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1

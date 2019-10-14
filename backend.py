@@ -59,7 +59,7 @@ def list_months():
 def get_post_ids_in_view(user_id, calendar_id, stage_id):
     calendar_stage_uuid ='|'.join([calendar_id, stage_id])
     response = user_stage_table.query(
-        IndexName='user_id-calendar_stage_uuid-index',
+        IndexName='user_calendar_stage',
         KeyConditionExpression=Key('user_id').eq(str(user_id)) & Key('calendar_stage_uuid').eq(calendar_stage_uuid)
     )
     items = response['Items']

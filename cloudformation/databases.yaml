@@ -1,0 +1,126 @@
+Parameters:
+    rdsuser:
+        Type: String
+    rdspassword:
+        Type: String
+    rdsport:
+        Type: Number
+    dbname:
+        Type: String
+Resources:
+  RDSDatabase:
+    Type: 'AWS::RDS::DBInstance'
+    Properties:
+      DBInstanceClass: db.t2.micro
+      Engine: mysql
+      EngineVersion: 5.7.22
+      StorageType: gp2
+      MasterUsername: !Ref rdsuser
+      MasterUserPassword: !Ref rdspassword
+      Port: !Ref rdsport
+      PubliclyAccessible: true
+      AllocatedStorage: 20
+      AllowMajorVersionUpgrade: true
+      AvailabilityZone: us-east-1a
+      BackupRetentionPeriod: 0
+  UserPostStage:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Post_Stage #User_Post_Stage
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: post_id
+          AttributeType: S
+        - AttributeName: calendar_stage_uuid
+          AttributeType: S
+      BillingMode: PROVISIONED
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: post_id
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - IndexName: user_calendar_stage
+          KeySchema:
+            - AttributeName: user_id
+              KeyType: HASH
+            - AttributeName: calendar_stage_uuid
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  UserLatestPosts:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: user_processed_posts #User_Latest_Post
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: calendar_id
+          AttributeType: S
+      BillingMode: PROVISIONED
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+        - AttributeName: calendar_id
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  UserRoleGroupID:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: user_role_group_id #User_RoleGroupID
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+      BillingMode: PROVISIONED
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+  RDSHost:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Host for RDS MySQL database"
+      Name: "/dev/rds/host"
+      Type: String
+      Value: !GetAtt RDSDatabase.Endpoint.Address
+  RDSDBName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Database name for RDS MySQL database"
+      Name: "/dev/rds/db_name"
+      Type: String
+      Value: !Ref dbname
+  RDSPort:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "User name for RDS MySQL database"
+      Name: "/dev/rds/port"
+      Type: String
+      Value: !Ref rdsport
+  RDSUserName:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "User name for RDS MySQL database"
+      Name: "/dev/rds/name"
+      Type: String
+      Value: !Ref rdsuser
+  RDSUserPassword:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "User name for RDS MySQL database"
+      Name: "/dev/rds/password"
+      Type: String
+      Value: !Ref rdspassword
+Outputs:
+  RDSConnectionAddress:
+    Value: !GetAtt RDSDatabase.Endpoint.Address
+  RDSPort:
+    Value: !GetAtt RDSDatabase.Endpoint.Port

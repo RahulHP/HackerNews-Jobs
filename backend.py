@@ -44,7 +44,7 @@ def rds_conn_required(f):
     @wraps(f)
     def wrap(*args, **kwargs):
         global conn
-        if not conn.open():
+        if not conn.open:
             conn = get_connection()
         return f(*args, **kwargs)
     return wrap

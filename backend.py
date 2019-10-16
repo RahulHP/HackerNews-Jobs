@@ -30,7 +30,6 @@ def get_connection():
         sys.exit()
     return conn
 
-global conn
 conn = get_connection()
 dynamodb_client = boto3.resource('dynamodb', region_name=config['aws_region'])
 user_role_group_id_table = dynamodb_client.Table('user_role_group_id')
@@ -44,8 +43,8 @@ app = Flask(__name__)
 def rds_conn_required(f):
     @wraps(f)
     def wrap(*args, **kwargs):
+        global conn
         if not conn.open():
-
             conn = get_connection()
         return f(*args, **kwargs)
     return wrap

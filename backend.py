@@ -43,9 +43,7 @@ app = Flask(__name__)
 def rds_conn_required(f):
     @wraps(f)
     def wrap(*args, **kwargs):
-        global conn
-        if not conn.open:
-            conn = get_connection()
+        conn.ping(reconnect=True)
         return f(*args, **kwargs)
     return wrap
 

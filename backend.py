@@ -1,6 +1,7 @@
 import pymysql
 import boto3
 import sys
+from functools import wraps
 from config import config
 from flask import Flask, request, url_for
 from boto3.dynamodb.conditions import Key, Attr
@@ -19,14 +20,17 @@ if 'Parameters' in parameters and len(parameters.get('Parameters')) > 0:
         config_values = param.get('Value')
         config[section_name] = config_values
 
-try:
-    conn = pymysql.connect(host=config['host'], user=config['name'], passwd=config['password'],
-                           db=config['db_name'], port=int(config['port']), connect_timeout=5)
-except Exception as e:
-    print(e)
-    sys.exit()
 
+def get_connection():
+    try:
+        conn = pymysql.connect(host=config['host'], user=config['name'], passwd=config['password'],
+                               db=config['db_name'], port=int(config['port']), connect_timeout=5)
+    except Exception as e:
+        print(e)
+        sys.exit()
+    return conn
 
+conn = get_connection()
 dynamodb_client = boto3.resource('dynamodb', region_name=config['aws_region'])
 user_role_group_id_table = dynamodb_client.Table('user_role_group_id')
 user_processed_post_table = dynamodb_client.Table('user_processed_posts')
@@ -36,7 +40,18 @@ user_stage_table = dynamodb_client.Table('Post_Stage')
 app = Flask(__name__)
 
 
+def rds_conn_required(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        global conn
+        if not conn.open:
+            conn = get_connection()
+        return f(*args, **kwargs)
+    return wrap
+
+
 @app.route('/role_groups', methods=['GET'])
+@rds_conn_required
 def list_role_groups():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         cur.execute('select * from hn_dev.role_groups')
@@ -45,6 +60,7 @@ def list_role_groups():
 
 
 @app.route('/calendar', methods=['GET'])
+@rds_conn_required
 def list_months():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
@@ -156,6 +172,7 @@ def get_last_processed_post(user_id, calendar_id):
         return {'last_processed_post': 0}
 
 
+@rds_conn_required
 def get_newer_posts(calendar_id, last_post):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
@@ -167,6 +184,7 @@ def get_newer_posts(calendar_id, last_post):
     return res
 
 
+@rds_conn_required
 def get_post_details(calendar_id, post_ids, role_group_id):
     if len(post_ids)==0:
         return [None]

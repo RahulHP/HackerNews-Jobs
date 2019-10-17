@@ -1,3 +1,6 @@
+CREATE DATABASE hn_dev;
+
+
 drop table if exists hn_dev.post_score;
 create table hn_dev.post_score
 (
@@ -10,8 +13,8 @@ create table hn_dev.post_score
 		primary key (role_group_id, post_uuid)
 );
 
-drop table if exists post_details;
-create table post_details
+drop table if exists hn_dev.post_details;
+create table hn_dev.post_details
 (
 	post_uuid varchar(255) not null,
 	role text null,
@@ -38,12 +41,8 @@ create table hn_dev.role_groups
 );
 
 
-INSERT INTO `hn_dev`.`role_groups` (`role_group_id`, `role_group_name`, `buzz_words`) VALUES (1, 'Data_Science', '''machine learning'', ''data science'', ''data analytics'', ''data engineering'', ''big data'', ''python'', ''ai'', ''artificial intelligence'', ''neural networks'', ''deep learning'', ''data scientist'', ''computer vision'', ''ml'', ''machine-learning'', ''natural language'', ''nlp'', ''sentiment analysis''');
-INSERT INTO `hn_dev`.`role_groups` (`role_group_id`, `role_group_name`, `buzz_words`) VALUES (2, 'Front_End', '''nodejs'', ''react'', ''angular'', ''html'', ''css'', ''aws'', ''ci/cd''');
-INSERT INTO `hn_dev`.`role_groups` (`role_group_id`, `role_group_name`, `buzz_words`) VALUES (3, 'DevOps', '''terraform'', ''aws'', ''aws'', ''heroku'', ''kubernetes'', ''deployment'', ''circleci'', ''ansible''');
-
-drop table if exists post_raw;
-create table post_raw
+drop table if exists hn_dev.post_raw;
+create table hn_dev.post_raw
 (
 	id int not null,
 	parent int null,
@@ -59,6 +58,7 @@ create table post_raw
 drop table if exists hn_dev.calendar_thread;
 create table hn_dev.calendar_thread
 (
+  month_id int not null,
 	month varchar(8) not null,
 	parent_id int not null,
     ingested_post_id int not null,
@@ -68,5 +68,10 @@ create table hn_dev.calendar_thread
 
 
 
-INSERT INTO `hn_dev`.`calendar_thread` (`month`, `parent_id`, `ingested_post_id`) VALUES ('oct_2019', 21126014, 0);
-INSERT INTO `hn_dev`.`calendar_thread` (`month`, `parent_id`, `ingested_post_id`) VALUES ('aug_2019', 20584311, 0);
+INSERT INTO `hn_dev`.`calendar_thread` (`month_id`, `month`, `parent_id`, `ingested_post_id`) VALUES (3, 'oct_2019', 21126014, 0);
+INSERT INTO `hn_dev`.`calendar_thread` (`month_id`, `month`, `parent_id`, `ingested_post_id`) VALUES (2, 'sep_2019', 20867123, 0);
+INSERT INTO `hn_dev`.`calendar_thread` (`month_id`, `month`, `parent_id`, `ingested_post_id`) VALUES (1, 'aug_2019', 20584311, 0);
+
+INSERT INTO `hn_dev`.`role_groups` (`role_group_id`, `role_group_name`, `buzz_words`) VALUES (1, 'Data_Science', '''machine learning'', ''data science'', ''data analytics'', ''data engineering'', ''big data'', ''python'', ''ai'', ''artificial intelligence'', ''neural networks'', ''deep learning'', ''data scientist'', ''computer vision'', ''ml'', ''machine-learning'', ''natural language'', ''nlp'', ''sentiment analysis''');
+INSERT INTO `hn_dev`.`role_groups` (`role_group_id`, `role_group_name`, `buzz_words`) VALUES (2, 'Front_End', '''nodejs'', ''react'', ''angular'', ''html'', ''css'', ''aws'', ''ci/cd''');
+INSERT INTO `hn_dev`.`role_groups` (`role_group_id`, `role_group_name`, `buzz_words`) VALUES (3, 'DevOps', '''terraform'', ''aws'', ''aws'', ''heroku'', ''kubernetes'', ''deployment'', ''circleci'', ''ansible''');

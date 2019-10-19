@@ -1,12 +1,13 @@
 Parameters:
+    env:
+        Type: String
+        Description: Environment
     rdsuser:
         Type: String
     rdspassword:
         Type: String
     rdsport:
         Type: Number
-    dbname:
-        Type: String
 Resources:
   RDSDatabase:
     Type: 'AWS::RDS::DBInstance'
@@ -26,7 +27,7 @@ Resources:
   UserPostStage:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: Post_Stage #User_Post_Stage
+      TableName: !Sub "User_Post_Stage_${env}"
       AttributeDefinitions:
         - AttributeName: user_id
           AttributeType: S
@@ -55,7 +56,7 @@ Resources:
   UserLatestPosts:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: user_processed_posts #User_Latest_Post
+      TableName: !Sub "User_Latest_Post_${env}"
       AttributeDefinitions:
         - AttributeName: user_id
           AttributeType: S
@@ -73,7 +74,7 @@ Resources:
   UserRoleGroupID:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: user_role_group_id #User_RoleGroupID
+      TableName: !Sub "User_RoleGroupID_${env}"
       AttributeDefinitions:
         - AttributeName: user_id
           AttributeType: S
@@ -88,37 +89,58 @@ Resources:
     Type: AWS::SSM::Parameter
     Properties:
       Description: "Host for RDS MySQL database"
-      Name: "/dev/rds/host"
+      Name: !Sub "/${env}/rds/host"
       Type: String
       Value: !GetAtt RDSDatabase.Endpoint.Address
   RDSDBName:
     Type: AWS::SSM::Parameter
     Properties:
       Description: "Database name for RDS MySQL database"
-      Name: "/dev/rds/db_name"
+      Name: !Sub "/${env}/rds/db_name"
       Type: String
-      Value: !Ref dbname
+      Value: "hn_jobs"
   RDSPort:
     Type: AWS::SSM::Parameter
     Properties:
       Description: "User name for RDS MySQL database"
-      Name: "/dev/rds/port"
+      Name: !Sub "/${env}/rds/port"
       Type: String
       Value: !Ref rdsport
   RDSUserName:
     Type: AWS::SSM::Parameter
     Properties:
       Description: "User name for RDS MySQL database"
-      Name: "/dev/rds/name"
+      Name: !Sub "/${env}/rds/name"
       Type: String
       Value: !Ref rdsuser
   RDSUserPassword:
     Type: AWS::SSM::Parameter
     Properties:
       Description: "User name for RDS MySQL database"
-      Name: "/dev/rds/password"
+      Name: !Sub "/${env}/rds/password"
       Type: String
       Value: !Ref rdspassword
+  DynamoDBUserPostStage:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Table name for User Post Stage"
+      Name: !Sub "/${env}/dynamodb/user_post_stage"
+      Type: String
+      Value: !Sub "User_Post_Stage_${env}"
+  DynamoDBUserLatestPosts:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Table name for User Latest Posts"
+      Name: !Sub "/${env}/dynamodb/user_latest_posts"
+      Type: String
+      Value: !Sub "User_Latest_Post_${env}"
+  DynamoDBUserRoleGroupID:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "DynamoDB Table name for User RoleGroupIDs"
+      Name: !Sub "/${env}/dynamodb/user_rolegroupid"
+      Type: String
+      Value: !Sub "User_RoleGroupID_${env}"
 Outputs:
   RDSConnectionAddress:
     Value: !GetAtt RDSDatabase.Endpoint.Address

@@ -1,13 +1,18 @@
 import boto3
 from functools import wraps
-from config import config
 from flask import Flask, render_template, request, redirect, url_for, session
+import os
 import requests
+from utils import get_ssm_dict
+
+app_config = get_ssm_dict('/{env}/app'.format(env=os.environ.get('ENV', 'dev')))
+cognito_config = get_ssm_dict('/{env}/cognito'.format(env=os.environ.get('ENV', 'dev')))
 
 app = Flask(__name__)
-app.secret_key = config['app_secret_key']
-base_url = 'http://{hostname}:{port}'.format(hostname=config['backend_hostname'], port=config['backend_port'])
-cognito_client = boto3.client('cognito-idp', region_name=config['aws_region'])
+
+app.secret_key = app_config['sessionkey']
+base_url = 'http://{hostname}:{port}'.format(hostname=app_config['backendhost'], port=app_config['backendport'])
+cognito_client = boto3.client('cognito-idp', region_name='us-east-1')
 
 STAGES = [['0', 'New', None],
           ['1', 'Saved', 'Save Job'],

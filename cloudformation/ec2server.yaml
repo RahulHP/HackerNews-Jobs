@@ -1,8 +1,14 @@
 Parameters:
+    env:
+      Type: String
+      Description: Environment
     keyname:
       Type: AWS::EC2::KeyPair::KeyName
     securitygroup:
       Type: AWS::EC2::SecurityGroup::GroupName
+    FlaskSessionKey:
+      Type: String
+      Description: "Private key for Flask session"
 Resources:
   Server:
     Type: AWS::EC2::Instance
@@ -16,13 +22,13 @@ Resources:
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
-      InstanceProfileName: Server_Instance_Profile
+      InstanceProfileName: !Sub "Server_Instance_Profile_${env}"
       Roles:
         - !Ref EC2Role
   EC2Role:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: "Web_Server_IAM_Role"
+      RoleName: !Sub "Web_Server_IAM_Role_${env}"
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -36,3 +42,24 @@ Resources:
         - "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess"
         - "arn:aws:iam::aws:policy/AmazonCognitoReadOnly"
         - "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+  FlaskSession:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Private key for Flask session"
+      Name: !Sub "/${env}/app/sessionkey"
+      Type: String
+      Value: !Ref FlaskSessionKey
+  BackendHost:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Host for backend server "
+      Name: !Sub "/${env}/app/backendhost"
+      Type: String
+      Value: "localhost"
+  BackendPort:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Port for backend server "
+      Name: !Sub "/${env}/app/backendport"
+      Type: String
+      Value: "8080"

@@ -1,40 +1,32 @@
 import pymysql
 import boto3
 import sys
+import os
 from functools import wraps
-from config import config
+from utils import get_ssm_dict
 from flask import Flask, request, url_for
 from boto3.dynamodb.conditions import Key, Attr
 import requests
 
-ssm_client = boto3.client('ssm', region_name=config['aws_region'])
-parameters = ssm_client.get_parameters_by_path(
-    Path='/dev/rds',
-    Recursive=True)
 
-if 'Parameters' in parameters and len(parameters.get('Parameters')) > 0:
-    params = parameters.get('Parameters')
-    for param in params:
-        param_path_array = param.get('Name').split("/")
-        section_name = param_path_array[-1]
-        config_values = param.get('Value')
-        config[section_name] = config_values
-
+rds_config = get_ssm_dict('/{env}/rds'.format(env=os.environ.get('ENV', 'dev')))
+dynamodb_config = get_ssm_dict('/{env}/dynamodb'.format(env=os.environ.get('ENV', 'dev')))
 
 def get_connection():
     try:
-        conn = pymysql.connect(host=config['host'], user=config['name'], passwd=config['password'],
-                               db=config['db_name'], port=int(config['port']), connect_timeout=5)
+        conn = pymysql.connect(host=rds_config['host'], user=rds_config['name'], passwd=rds_config['password'],
+                               db=rds_config['db_name'], port=int(rds_config['port']), connect_timeout=5)
     except Exception as e:
         print(e)
         sys.exit()
     return conn
 
+
 conn = get_connection()
-dynamodb_client = boto3.resource('dynamodb', region_name=config['aws_region'])
-user_role_group_id_table = dynamodb_client.Table('user_role_group_id')
-user_processed_post_table = dynamodb_client.Table('user_processed_posts')
-user_stage_table = dynamodb_client.Table('Post_Stage')
+dynamodb_client = boto3.resource('dynamodb', region_name='us-east-1')
+user_role_group_id_table = dynamodb_client.Table(dynamodb_config['user_rolegroupid'])
+user_processed_post_table = dynamodb_client.Table(dynamodb_config['user_latest_posts'])
+user_stage_table = dynamodb_client.Table(dynamodb_config['user_post_stage'])
 
 
 app = Flask(__name__)
@@ -52,7 +44,7 @@ def rds_conn_required(f):
 @rds_conn_required
 def list_role_groups():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
-        cur.execute('select * from hn_dev.role_groups')
+        cur.execute('select * from hn_jobs.role_groups')
     res = cur.fetchall()
     return {'role_groups': res}
 
@@ -62,7 +54,7 @@ def list_role_groups():
 def list_months():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
-        select month from hn_dev.calendar_thread
+        select month from hn_jobs.calendar_thread
         """
         cur.execute(query)
         results = cur.fetchall()
@@ -174,7 +166,7 @@ def get_last_processed_post(user_id, calendar_id):
 def get_newer_posts(calendar_id, last_post):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
-        select post_id from hn_dev.post_details where calendar_id="{calendar}" and post_id >= {post}
+        select post_id from hn_jobs.post_details where calendar_id="{calendar}" and post_id >= {post}
         """.format(calendar=calendar_id, post=last_post)
         print(query)
         cur.execute(query)
@@ -189,9 +181,9 @@ def get_post_details(calendar_id, post_ids, role_group_id):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
         select * from
-            (select * from hn_dev.post_details where calendar_id='{cal_id}') details
+            (select * from hn_jobs.post_details where calendar_id='{cal_id}') details
             inner join
-            (select * from hn_dev.post_score where calendar_id='{cal_id}' and role_group_id={rg_id}) scores
+            (select * from hn_jobs.post_score where calendar_id='{cal_id}' and role_group_id={rg_id}) scores
             on details.post_uuid = scores.post_uuid
             where scores.post_id in ({post_list})
             order by score desc;

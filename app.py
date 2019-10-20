@@ -101,7 +101,7 @@ def reset_password():
             if request.form['password'] != request.form['confirm_password']:
                 return redirect(url_for('reset_password'))
             response = cognito_client.respond_to_auth_challenge(
-                ClientId=config['cognito_user_pool_id'],
+                ClientId=cognito_config['userpoolid'],
                 ChallengeName='NEW_PASSWORD_REQUIRED',
                 Session=session['challenge_session'],
                 ChallengeResponses={
@@ -128,7 +128,7 @@ def login():
     else:
         try:
             response = cognito_client.initiate_auth(
-                ClientId=config['cognito_user_pool_id'],
+                ClientId=cognito_config['userpoolid'],
                 AuthFlow='USER_PASSWORD_AUTH',
                 AuthParameters={
                     'USERNAME': request.form['username'],

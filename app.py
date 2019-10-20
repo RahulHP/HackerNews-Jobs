@@ -1,13 +1,18 @@
 import boto3
 from functools import wraps
-from config import config
 from flask import Flask, render_template, request, redirect, url_for, session
+import os
 import requests
+from utils import get_ssm_dict
+
+app_config = get_ssm_dict('/{env}/app'.format(env=os.environ.get('ENV', 'dev')))
+cognito_config = get_ssm_dict('/{env}/cognito'.format(env=os.environ.get('ENV', 'dev')))
 
 app = Flask(__name__)
-app.secret_key = config['app_secret_key']
-base_url = 'http://{hostname}:{port}'.format(hostname=config['backend_hostname'], port=config['backend_port'])
-cognito_client = boto3.client('cognito-idp', region_name=config['aws_region'])
+
+app.secret_key = app_config['sessionkey']
+base_url = 'http://{hostname}:{port}'.format(hostname=app_config['backendhost'], port=app_config['backendport'])
+cognito_client = boto3.client('cognito-idp', region_name='us-east-1')
 
 STAGES = [['0', 'New', None],
           ['1', 'Saved', 'Save Job'],
@@ -96,7 +101,7 @@ def reset_password():
             if request.form['password'] != request.form['confirm_password']:
                 return redirect(url_for('reset_password'))
             response = cognito_client.respond_to_auth_challenge(
-                ClientId=config['cognito_user_pool_id'],
+                ClientId=cognito_config['userpoolid'],
                 ChallengeName='NEW_PASSWORD_REQUIRED',
                 Session=session['challenge_session'],
                 ChallengeResponses={
@@ -123,7 +128,7 @@ def login():
     else:
         try:
             response = cognito_client.initiate_auth(
-                ClientId=config['cognito_user_pool_id'],
+                ClientId=cognito_config['userpoolid'],
                 AuthFlow='USER_PASSWORD_AUTH',
                 AuthParameters={
                     'USERNAME': request.form['username'],

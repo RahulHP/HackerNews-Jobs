@@ -1,3 +1,7 @@
+Parameters:
+  env:
+    Type: String
+    Description: Environment
 Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
@@ -17,7 +21,7 @@ Resources:
           TemporaryPasswordValidityDays: 3
       UserPoolAddOns:
          AdvancedSecurityMode: "OFF"
-      UserPoolName: HN_jobs_user_pool
+      UserPoolName: !Sub "HN_jobs_user_pool_${env}"
   UserClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -30,7 +34,7 @@ Resources:
         - openid
         - aws.cognito.signin.user.admin
         - profile
-      ClientName: HN_jobs_app_client
+      ClientName: !Sub "HN_jobs_app_client_${env}"
       ExplicitAuthFlows:
         - USER_PASSWORD_AUTH
       CallbackURLs:
@@ -40,3 +44,10 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
       UserPoolId: !Ref UserPool
+  CognitoUserPoolID:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: "Cognito User Pool Client ID"
+      Name: !Sub "/${env}/cognito/userpoolid"
+      Type: String
+      Value: !Ref UserClient

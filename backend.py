@@ -128,8 +128,9 @@ def create_records_for_new_posts(user_id, calendar_id):
         new_last_processed_post = max(i['post_id'] for i in new_posts)
         set_last_processed_post(user_id, calendar_id, new_last_processed_post)
         print('LAST PROCESSED POST:', new_last_processed_post)
-    return {'last_processed_post': new_last_processed_post}
-
+        return {'last_processed_post': new_last_processed_post}
+    else:
+        return {'last_processed_post': last_processed_post}
 
 def set_last_processed_post(user_id, calendar_id, last_post):
     user_processed_post_table.update_item(

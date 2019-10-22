@@ -38,30 +38,33 @@ Resources:
       Code: ../data_ingestion/lambdas/ingesting_posts
       Handler: ingesting_posts.lambda_handler
       Layers:
-        - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+        - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
       Role: !GetAtt IAMRole.Arn
       Runtime: python3.6
       Description: Ingesting Posts
+      Timeout: 600
   TransformingPosts:
     Type: AWS::Lambda::Function
     Properties:
       Code: ../data_ingestion/lambdas/transforming_posts
       Handler: transforming_posts.lambda_handler
       Layers:
-      - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
       Role: !GetAtt IAMRole.Arn
       Runtime: python3.6
       Description: Transforming Posts
+      Timeout: 120
   ScoringPosts:
     Type: AWS::Lambda::Function
     Properties:
       Code: ../data_ingestion/lambdas/scoring_posts
       Handler: scoring_posts.lambda_handler
       Layers:
-      - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
       Role: !GetAtt IAMRole.Arn
       Runtime: python3.6
       Description: Scoring Posts
+      Timeout: 120
   StateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     DependsOn:

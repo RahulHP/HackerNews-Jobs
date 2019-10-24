@@ -55,6 +55,7 @@ def list_months():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
         select month from hn_jobs.calendar_thread
+        order by month_id desc;
         """
         cur.execute(query)
         results = cur.fetchall()
@@ -69,7 +70,8 @@ def get_post_ids_in_view(user_id, calendar_id, stage_id):
         KeyConditionExpression=Key('user_id').eq(str(user_id)) & Key('calendar_stage_uuid').eq(calendar_stage_uuid)
     )
     items = response['Items']
-    results_list = [i['post_id'] for i in items]
+    results_list = [int(i['post_id']) for i in items]
+    results_list.sort()
     results = {'results': results_list}
     return results
 
@@ -90,12 +92,11 @@ def update_post(user_id):
     calendar_id = request.form.get('calendar_id')
     stage_id = request.form.get('stage_id')
     post_id = request.form.get('post_id')
-    print(user_id,post_id,calendar_id,stage_id)
     update_post_stage(user_id, post_id, calendar_id, stage_id)
     return {'code': 200}
 
 
-@app.route('/users/<user_id>/calendar/<calendar_id>/stage/<stage_id>/view')
+@app.route('/users/<user_id>/calendar/<calendar_id>/stage/<stage_id>/view', methods=['GET'])
 def get_view(user_id, calendar_id, stage_id):
     post_ids = get_post_ids_in_view(user_id, calendar_id, stage_id)['results']
     user_role_group_id = get_user_rolegroupid(user_id)['role_group_id']
@@ -103,11 +104,18 @@ def get_view(user_id, calendar_id, stage_id):
     return {'results': post_details}
 
 
+@app.route('/users/<user_id>/batch_posts', methods=['POST'])
+def api_batch_create_records(user_id):
+    calendar_id = request.form.get('calendar_id')
+    stage_id = request.form.get('stage_id')
+    posts = request.form.getlist('post_id_batch')
+    batch_create_records(user_id, calendar_id, posts, stage_id)
+    return {'code': 200}
+
 def batch_create_records(user_id, calendar_id, post_ids, stage=0):
     calendar_stage_uuid = '|'.join([calendar_id,str(stage)])
     with user_stage_table.batch_writer() as batch:
-        for post in post_ids:
-            post_id = post['post_id']
+        for post_id in post_ids:
             batch.put_item(
                 Item={
                     'user_id': str(user_id),
@@ -125,12 +133,23 @@ def create_records_for_new_posts(user_id, calendar_id):
     if len(new_posts) != 0:
         print("UPDATING POSTS", len(new_posts))
         batch_create_records(user_id, calendar_id, new_posts)
-        new_last_processed_post = max(i['post_id'] for i in new_posts)
+        new_last_processed_post = max(new_posts)
         set_last_processed_post(user_id, calendar_id, new_last_processed_post)
         print('LAST PROCESSED POST:', new_last_processed_post)
         return {'last_processed_post': new_last_processed_post}
     else:
         return {'last_processed_post': last_processed_post}
+
+
+@app.route('/users/<user_id>/calendar/<calendar_id>/latest_post', methods=['GET', 'POST'])
+def api_latest_post(user_id, calendar_id):
+    if request.method == 'GET':
+        return get_last_processed_post(user_id, calendar_id)
+    else:
+        post_id = request.form['latest_post']
+        set_last_processed_post(user_id, calendar_id, post_id)
+        return {'last_processed_post': int(post_id)}
+
 
 def set_last_processed_post(user_id, calendar_id, last_post):
     user_processed_post_table.update_item(
@@ -138,7 +157,7 @@ def set_last_processed_post(user_id, calendar_id, last_post):
              'calendar_id': calendar_id},
         UpdateExpression='SET post_id = :post',
         ExpressionAttributeValues={
-            ':post': last_post
+            ':post': int(last_post)
         }
     )
 
@@ -163,16 +182,24 @@ def get_last_processed_post(user_id, calendar_id):
         return {'last_processed_post': 0}
 
 
+@app.route('/calendar/<calendar_id>/new_posts', methods=['GET'])
+def api_get_new_posts(calendar_id):
+    last_post = request.args.get('last_post')
+    new_posts = get_newer_posts(calendar_id, last_post)
+    return {'new_posts': new_posts}
+
+
 @rds_conn_required
 def get_newer_posts(calendar_id, last_post):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
-        select post_id from hn_jobs.post_details where calendar_id="{calendar}" and post_id >= {post}
+        select post_id from hn_jobs.post_details where calendar_id="{calendar}" and post_id > {post}
+        order by post_id desc
         """.format(calendar=calendar_id, post=last_post)
-        print(query)
         cur.execute(query)
     res = cur.fetchall()
-    return res
+    results = [x['post_id'] for x in res]
+    return results
 
 
 @rds_conn_required
@@ -181,15 +208,14 @@ def get_post_details(calendar_id, post_ids, role_group_id):
         return [None]
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
-        select * from
+        select details.post_id, post_text, post_time, poster_id, score from
             (select * from hn_jobs.post_details where calendar_id='{cal_id}') details
             inner join
             (select * from hn_jobs.post_score where calendar_id='{cal_id}' and role_group_id={rg_id}) scores
             on details.post_uuid = scores.post_uuid
             where scores.post_id in ({post_list})
-            order by score desc;
-        """.format(cal_id=calendar_id, rg_id=role_group_id, post_list=','.join(post_ids))
-        print(query)
+            order by score desc, details.post_id desc;
+        """.format(cal_id=calendar_id, rg_id=role_group_id, post_list=','.join(str(x) for x in post_ids))
         cur.execute(query)
         results = cur.fetchall()
     return results
@@ -204,14 +230,14 @@ def get_user_rolegroupid(user_id):
     if 'Item' not in response:
         return {'user_id': user_id, 'role_group_id': None}
     else:
-        return response['Item']
+        return {'user_id': user_id, 'role_group_id': int(response['Item']['role_group_id'])}
 
 
 def update_user_rolegroupid(user_id, role_group_id):
     user_role_group_id_table.put_item(
         Item={
             'user_id': user_id,
-            'role_group_id': role_group_id
+            'role_group_id': int(role_group_id)
         }
     )
 
@@ -223,7 +249,7 @@ def api_user_rolegroupid(user_id):
     else:
         role_group_id = request.form['role_group_id']
         update_user_rolegroupid(user_id, role_group_id)
-        return {'user_id': user_id, 'role_group_id': role_group_id}
+        return {'user_id': user_id, 'role_group_id': int(role_group_id)}
 
 
 if __name__ == '__main__':

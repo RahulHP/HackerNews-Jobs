@@ -5,8 +5,8 @@ import os
 import requests
 from utils import get_ssm_dict
 
-app_config = get_ssm_dict('/{env}/app'.format(env=os.environ.get('ENV', 'dev')))
-cognito_config = get_ssm_dict('/{env}/cognito'.format(env=os.environ.get('ENV', 'dev')))
+app_config = get_ssm_dict('/{env}/app'.format(env=os.environ['ENV']))
+cognito_config = get_ssm_dict('/{env}/cognito'.format(env=os.environ['ENV']))
 
 app = Flask(__name__)
 

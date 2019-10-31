@@ -9,8 +9,8 @@ from boto3.dynamodb.conditions import Key, Attr
 import requests
 
 
-rds_config = get_ssm_dict('/{env}/rds'.format(env=os.environ.get('ENV', 'dev')))
-dynamodb_config = get_ssm_dict('/{env}/dynamodb'.format(env=os.environ.get('ENV', 'dev')))
+rds_config = get_ssm_dict('/{env}/rds'.format(env=os.environ['ENV']))
+dynamodb_config = get_ssm_dict('/{env}/dynamodb'.format(env=os.environ['ENV']))
 
 def get_connection():
     try:

@@ -7,6 +7,7 @@ User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/hnjobs/HackerNews-Jobs
 Environment="PATH=/home/ubuntu/miniconda3/envs/webapp/bin"
+Environment="ENV=test"
 ExecStart=/home/ubuntu/miniconda3/envs/webapp/bin/uwsgi --ini app.ini
 
 [Install]

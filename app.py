@@ -124,7 +124,7 @@ def reset_password():
 def login():
     if request.method == 'GET':
         session.clear()
-        return render_template('login.html')
+        return render_template('login.html', error=None)
     else:
         try:
             response = cognito_client.initiate_auth(
@@ -144,9 +144,15 @@ def login():
                 session['access_token'] = access_token
                 return redirect(url_for('index'))
             return response
+        except cognito_client.exceptions.NotAuthorizedException:
+            error = 'Wrong Username/Password'
+            return render_template('login.html', error=error)
+        except cognito_client.exceptions.UserNotFoundException:
+            error = 'User Not Found'
+            return render_template('login.html', error=error)
         except Exception as e:
-            print(e)
-            return {'Code': 'Failure', 'Message': str(e)}
+            error = e
+            return render_template('login.html', error=error)
 
 
 @app.route('/logout')

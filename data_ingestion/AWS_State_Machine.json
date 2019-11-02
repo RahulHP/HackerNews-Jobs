@@ -1,50 +1,49 @@
 {
-  "StartAt": "Ingest Posts",
+  "StartAt": "Get Latest Month",
   "States": {
-"Ingest Posts": {
-  "Type": "Task",
-  "Resource": "arn:aws:states:::lambda:invoke",
-  "Parameters": {
-    "FunctionName": "arn:aws:lambda:us-east-1:290321588373:function:ingesting_posts:$LATEST",
-    "Payload": {
-      "calendar_id.$": "$.calendar_id"
-    }
-  },
-  "ResultPath": null,
-  "Next": "Transform Posts"
-
-},
-    "Transform Posts": {
-  "Type": "Task",
-  "Resource": "arn:aws:states:::lambda:invoke",
-  "Parameters": {
-    "FunctionName": "arn:aws:lambda:us-east-1:290321588373:function:transforming_posts:$LATEST",
-    "Payload": {
-      "calendar_id.$": "$.calendar_id"
-    }
-  },
-  "Next": "Pass Role Group",
-  "ResultPath": null
-},
-    "Pass Role Group": {
-  "Type": "Pass",
-  "Next": "Score Posts",
-      "Result":{
-        "role_group_id":1
+    "Get Latest Month": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${LatestMonthArn}"
       },
-      "ResultPath": "$.role_group_id"
-},
+      "ResultPath": "$",
+      "Next": "Ingest Posts"
+    },
+    "Ingest Posts": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${IngestingPostsArn}",
+        "Payload": {
+          "calendar_id.$": "$.calendar_id"
+        }
+      },
+      "ResultPath": null,
+      "Next": "Transform Posts"
+    },
+    "Transform Posts": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${TransformingPostsArn}",
+        "Payload": {
+          "calendar_id.$": "$.calendar_id"
+        }
+      },
+      "Next": "Score Posts",
+      "ResultPath": null
+    },
     "Score Posts": {
-  "Type": "Task",
-  "Resource": "arn:aws:states:::lambda:invoke",
-  "Parameters": {
-    "FunctionName": "arn:aws:lambda:us-east-1:290321588373:function:scoring_posts:$LATEST",
-    "Payload": {
-      "calendar_id.$": "$.calendar_id",
-      "role_group_id.$": "$.role_group_id.role_group_id"
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ScoringPostsArn}",
+        "Payload": {
+          "calendar_id.$": "$.calendar_id"
+        }
+      },
+      "End": true
     }
-  },
-  "End":true
-}
   }
 }

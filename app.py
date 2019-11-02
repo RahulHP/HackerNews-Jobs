@@ -1,4 +1,5 @@
 import boto3
+import botocore
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session
 import os
@@ -143,6 +144,34 @@ def login():
         except Exception as e:
             error = e
             return render_template('login.html', error=error)
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'GET':
+        return render_template('signup.html', error=None)
+    else:
+        user = request.form['username']
+        password = request.form['password']
+        try:
+            response = cognito_client.sign_up(
+                ClientId=cognito_config['userpoolid'],
+                Username=user,
+                Password=password
+            )
+
+            if 'UserConfirmed' in response and response['UserConfirmed']:
+                return render_template('signup_success.html', username=user)
+            if 'UserConfirmed' in response and not response['UserConfirmed']:
+                return render_template('signup.html', error="Try Again")
+        except cognito_client.exceptions.UsernameExistsException:
+            error = 'User already exists, try another user name'
+            return render_template('signup.html', error=error)
+        except botocore.exceptions.ParamValidationError as e:
+            return render_template('signup.html', error=e)
+        except Exception as e:
+            print(type(e))
+            return render_template('signup.html', error=e)
 
 
 @app.route('/logout')

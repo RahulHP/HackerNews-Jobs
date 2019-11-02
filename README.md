@@ -2,7 +2,9 @@ Deployment Steps
 ```
 aws cloudformation deploy --template-file cloudformation/databases.yaml --stack-name databasesdev --parameter-overrides rdsuser=admin rdspassword=password rdsport=3306 env=dev
 
-aws cloudformation deploy --template-file cloudformation/cognito.yaml --stack-name cognitodev --parameter-overrides env=dev
+
+aws cloudformation package --template cloudformation/cognito.yaml --s3-bucket hn-jobs-rahulhp-dev --output-template-file cloudformation/cognito_gen.yaml
+aws cloudformation deploy --template-file cloudformation/cognito_gen.yaml --stack-name cognitotest --parameter-overrides env=test --capabilities CAPABILITY_NAMED_IAM
 
 aws cloudformation deploy --template-file cloudformation/ec2server.yaml --stack-name serverdev --capabilities CAPABILITY_NAMED_IAM --parameter-overrides env=dev keyname=key securitygroup=group FlaskSessionKey=secret
 

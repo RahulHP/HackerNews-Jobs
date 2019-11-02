@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>Success</title>
+</head>
+
+<body>
+<nav class="navbar navbar-light navbar-expand-md">
+    <div class="container-fluid"><a class="navbar-brand" href="/view"><strong>HN Job Tracker</strong></a>
+    </div>
+</nav>
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            Welcome {{ username }}, you have been successfully signed up. Please <a href="{{ url_for('login') }}">login</a> to continue.
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

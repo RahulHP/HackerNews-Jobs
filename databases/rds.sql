@@ -68,6 +68,7 @@ create table hn_jobs.calendar_thread
 
 
 
+INSERT INTO `hn_jobs`.`calendar_thread` (`month_id`, `month`, `parent_id`, `ingested_post_id`) VALUES (4, 'nov_2019', 21419536, 0);
 INSERT INTO `hn_jobs`.`calendar_thread` (`month_id`, `month`, `parent_id`, `ingested_post_id`) VALUES (3, 'oct_2019', 21126014, 0);
 INSERT INTO `hn_jobs`.`calendar_thread` (`month_id`, `month`, `parent_id`, `ingested_post_id`) VALUES (2, 'sep_2019', 20867123, 0);
 INSERT INTO `hn_jobs`.`calendar_thread` (`month_id`, `month`, `parent_id`, `ingested_post_id`) VALUES (1, 'aug_2019', 20584311, 0);

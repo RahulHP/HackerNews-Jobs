@@ -1,5 +1,4 @@
 import json
-import requests
 import boto3
 import pymysql
 import ast
@@ -19,13 +18,8 @@ if 'Parameters' in parameters and len(parameters.get('Parameters')) > 0:
         config_values = param.get('Value')
         config[section_name] = config_values
 
-try:
-    conn = pymysql.connect(host=config['host'], user=config['name'], passwd=config['password'], db=config['db_name'],
-                           port=int(config['port']), connect_timeout=5)
-except Exception as e:
-    logger.error("ERROR: Unexpected error: Could not connect to MySQL instance.")
-    logger.error(e)
-    sys.exit()
+conn = pymysql.connect(host=config['host'], user=config['name'], passwd=config['password'], db=config['db_name'],
+                       port=int(config['port']), connect_timeout=5)
 
 
 def get_score(text, buzz):
@@ -39,30 +33,48 @@ def get_score(text, buzz):
     return score
 
 
-def lambda_handler(event, context):
-    with conn.cursor() as cur:
-        cur.execute(
-            'SELECT buzz_words from role_groups where role_group_id={rg_id}'.format(rg_id=event['role_group_id']))
-        for row in cur:
-            text = row[0]
-
-    buzz_words = ast.literal_eval(text)
+def score_and_insert(calendar_id, role_group_id):
+    buzz_words = get_buzz_words(role_group_id)
 
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         cur.execute('select post_uuid, post_text,post_id from post_details where calendar_id="{calendar_id}"'.format(
-            calendar_id=event['calendar_id']))
+            calendar_id=calendar_id))
         results = list()
         for row in cur:
             score = get_score(row['post_text'], buzz_words)
-            results.append((row['post_uuid'], event['role_group_id'], score, event['calendar_id'], row['post_id']))
+            results.append((row['post_uuid'], role_group_id, score, calendar_id, row['post_id']))
 
     with conn.cursor() as cur:
-        cur.execute('DELETE FROM post_score WHERE calendar_id="{calendar_id}"'.format(calendar_id=event['calendar_id']))
+        cur.execute('DELETE FROM post_score WHERE calendar_id="{calendar_id}"'.format(calendar_id=calendar_id))
         conn.commit()
         cur.executemany(
             """INSERT INTO post_score (post_uuid, role_group_id, score, calendar_id, post_id)
             VALUES (%s, %s, %s, %s, %s)""", results)
         conn.commit()
+
+
+def get_buzz_words(role_group_id):
+    with conn.cursor() as cur:
+        cur.execute(
+            'SELECT buzz_words from role_groups where role_group_id={rg_id}'.format(rg_id=role_group_id))
+        for row in cur:
+            text = row[0]
+    buzz_words = ast.literal_eval(text)
+    return buzz_words
+
+
+def get_role_group_ids():
+    with conn.cursor(pymysql.cursors.DictCursor) as cur:
+        cur.execute('select role_group_id from hn_jobs.role_groups')
+        res = cur.fetchall()
+    return [x['role_group_id'] for x in res]
+
+
+def lambda_handler(event, context):
+    role_group_ids = get_role_group_ids()
+
+    for rg_id in role_group_ids:
+        score_and_insert(calendar_id=event['calendar_id'], role_group_id=rg_id)
 
     return {
         'statusCode': 200,

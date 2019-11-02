@@ -1,11 +1,10 @@
-import json
-import requests
 import boto3
 import pymysql
+import os
 
 client = boto3.client('ssm')
 parameters = client.get_parameters_by_path(
-    Path='/dev/rds',
+    Path='/{env}/rds'.format(env=os.environ['env']),
     Recursive=True)
 
 config = dict()
@@ -18,13 +17,9 @@ if 'Parameters' in parameters and len(parameters.get('Parameters')) > 0:
         config_values = param.get('Value')
         config[section_name] = config_values
 
-try:
-    conn = pymysql.connect(host=config['host'], user=config['name'], passwd=config['password'], db=config['db_name'],
-                           port=int(config['port']), connect_timeout=5)
-except Exception as e:
-    logger.error("ERROR: Unexpected error: Could not connect to MySQL instance.")
-    logger.error(e)
-    sys.exit()
+
+conn = pymysql.connect(host=config['host'], user=config['name'], passwd=config['password'], db=config['db_name'],
+                       port=int(config['port']), connect_timeout=5)
 
 
 def lambda_handler(event, context):

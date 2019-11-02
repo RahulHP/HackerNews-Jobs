@@ -1,3 +1,7 @@
+Parameters:
+    env:
+        Type: String
+        Description: Environment
 Resources:
   StepFunctionRole:
     Type: AWS::IAM::Role
@@ -32,6 +36,20 @@ Resources:
         - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
         - "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
       RoleName: HN_Lambda_Role
+  LatestMonth:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: ../data_ingestion/lambdas/latest_month
+      Handler: latest_month.lambda_handler
+      Layers:
+        - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
+      Role: !GetAtt IAMRole.Arn
+      Runtime: python3.6
+      Description: Getting latest month to load
+      Timeout: 5
+      Environment:
+        Variables:
+          env: !Sub '${env}'
   IngestingPosts:
     Type: AWS::Lambda::Function
     Properties:
@@ -43,6 +61,9 @@ Resources:
       Runtime: python3.6
       Description: Ingesting Posts
       Timeout: 600
+      Environment:
+        Variables:
+          env: !Sub '${env}'
   TransformingPosts:
     Type: AWS::Lambda::Function
     Properties:
@@ -54,6 +75,9 @@ Resources:
       Runtime: python3.6
       Description: Transforming Posts
       Timeout: 120
+      Environment:
+        Variables:
+          env: !Sub '${env}'
   ScoringPosts:
     Type: AWS::Lambda::Function
     Properties:
@@ -65,6 +89,9 @@ Resources:
       Runtime: python3.6
       Description: Scoring Posts
       Timeout: 120
+      Environment:
+        Variables:
+          env: !Sub '${env}'
   StateMachine:
     Type: "AWS::StepFunctions::StateMachine"
     DependsOn:
@@ -78,8 +105,17 @@ Resources:
         !Sub
           - |-
             {
-              "StartAt": "Ingest Posts",
+              "StartAt": "Get Latest Month",
               "States": {
+                "Get Latest Month": {
+                  "Type": "Task",
+                  "Resource": "arn:aws:states:::lambda:invoke",
+                  "Parameters": {
+                    "FunctionName": "${LatestMonthArn}"
+                  },
+                  "OutputPath": "$.Payload",
+                  "Next": "Ingest Posts"
+                },
                 "Ingest Posts": {
                   "Type": "Task",
                   "Resource": "arn:aws:states:::lambda:invoke",
@@ -101,16 +137,8 @@ Resources:
                       "calendar_id.$": "$.calendar_id"
                     }
                   },
-                  "Next": "Pass Role Group",
-                  "ResultPath": null
-                },
-                "Pass Role Group": {
-                  "Type": "Pass",
                   "Next": "Score Posts",
-                  "Result": {
-                    "role_group_id": 1
-                  },
-                  "ResultPath": "$.role_group_id"
+                  "ResultPath": null
                 },
                 "Score Posts": {
                   "Type": "Task",
@@ -118,8 +146,7 @@ Resources:
                   "Parameters": {
                     "FunctionName": "${ScoringPostsArn}",
                     "Payload": {
-                      "calendar_id.$": "$.calendar_id",
-                      "role_group_id.$": "$.role_group_id.role_group_id"
+                      "calendar_id.$": "$.calendar_id"
                     }
                   },
                   "End": true
@@ -129,6 +156,7 @@ Resources:
           - IngestingPostsArn: !GetAtt IngestingPosts.Arn
             TransformingPostsArn: !GetAtt TransformingPosts.Arn
             ScoringPostsArn: !GetAtt ScoringPosts.Arn
+            LatestMonthArn: !GetAtt LatestMonth.Arn
   RuleRole:
     Type: AWS::IAM::Role
     DependsOn:
@@ -167,5 +195,5 @@ Resources:
       Targets:
         - Arn: !Ref StateMachine
           Id: Run_State_Machine
-          Input: "{\"calendar_id\": \"oct_2019\"}"
+          Input: "{\"calendar_id\": \"dummy\"}"
           RoleArn: !GetAtt RuleRole.Arn

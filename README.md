@@ -12,7 +12,7 @@ aws s3api create-bucket --acl private --bucket hn-jobs-rahulhp-dev --region us-e
 
 aws cloudformation package --template cloudformation\lambdas.yaml --s3-bucket hn-jobs-rahulhp-dev --output-template-file cloudformation\lambda_gen.yaml
 
-aws cloudformation deploy --template-file cloudformation\lambda_gen.yaml --stack-name lambdastackdev --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation deploy --template-file cloudformation\lambda_gen.yaml --stack-name lambdastackdev --capabilities CAPABILITY_NAMED_IAM --parameter-overrides env=dev
 ```
 
 After SSHing into EC2

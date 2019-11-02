@@ -1,3 +1,7 @@
+Parameters:
+  env:
+    Type: String
+    Description: Environment
 Resources:
   StepFunctionRole:
     Type: AWS::IAM::Role
@@ -32,51 +36,86 @@ Resources:
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       - arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess
       RoleName: HN_Lambda_Role
+  LatestMonth:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: hn-jobs-rahulhp-dev
+        S3Key: 9fdeeaf751d75dca9ff07e253ae9a30e
+      Handler: latest_month.lambda_handler
+      Layers:
+      - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
+      Role:
+        Fn::GetAtt:
+        - IAMRole
+        - Arn
+      Runtime: python3.6
+      Description: Getting latest month to load
+      Timeout: 5
+      Environment:
+        Variables:
+          env:
+            Fn::Sub: ${env}
   IngestingPosts:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        S3Bucket: hackernews-jobs
-        S3Key: 46ae773bd716d8575d97ca118716c0f3
+        S3Bucket: hn-jobs-rahulhp-dev
+        S3Key: 6465a3d32bbffe0aaf7b9afc53090bdd
       Handler: ingesting_posts.lambda_handler
       Layers:
-      - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
       Role:
         Fn::GetAtt:
         - IAMRole
         - Arn
       Runtime: python3.6
       Description: Ingesting Posts
+      Timeout: 600
+      Environment:
+        Variables:
+          env:
+            Fn::Sub: ${env}
   TransformingPosts:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        S3Bucket: hackernews-jobs
-        S3Key: 210cc47cddfe6ac42943dca7f0e961fa
+        S3Bucket: hn-jobs-rahulhp-dev
+        S3Key: 26b8f50694c46e916fddc878d7d4612a
       Handler: transforming_posts.lambda_handler
       Layers:
-      - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
       Role:
         Fn::GetAtt:
         - IAMRole
         - Arn
       Runtime: python3.6
       Description: Transforming Posts
+      Timeout: 120
+      Environment:
+        Variables:
+          env:
+            Fn::Sub: ${env}
   ScoringPosts:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        S3Bucket: hackernews-jobs
-        S3Key: 783b43246d2a46169f4fad243f5269c0
+        S3Bucket: hn-jobs-rahulhp-dev
+        S3Key: 039f97ebfed7c24091ac3df20834eb05
       Handler: scoring_posts.lambda_handler
       Layers:
-      - arn:aws:lambda:us-east-1:290321588373:layer:LambdaLayerPython3RequestsPyMySQL:1
+      - arn:aws:lambda:us-east-1:290321588373:layer:Automation:7
       Role:
         Fn::GetAtt:
         - IAMRole
         - Arn
       Runtime: python3.6
       Description: Scoring Posts
+      Timeout: 120
+      Environment:
+        Variables:
+          env:
+            Fn::Sub: ${env}
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
     DependsOn:
@@ -91,24 +130,25 @@ Resources:
       StateMachineName: Cloud_Formation_Stack
       DefinitionString:
         Fn::Sub:
-        - "{\n  \"StartAt\": \"Ingest Posts\",\n  \"States\": {\n    \"Ingest Posts\"\
-          : {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:states:::lambda:invoke\"\
-          ,\n      \"Parameters\": {\n        \"FunctionName\": \"${IngestingPostsArn}\"\
-          ,\n        \"Payload\": {\n          \"calendar_id.$\": \"$.calendar_id\"\
-          \n        }\n      },\n      \"ResultPath\": null,\n      \"Next\": \"Transform\
-          \ Posts\"\n    },\n    \"Transform Posts\": {\n      \"Type\": \"Task\"\
-          ,\n      \"Resource\": \"arn:aws:states:::lambda:invoke\",\n      \"Parameters\"\
-          : {\n        \"FunctionName\": \"${TransformingPostsArn}\",\n        \"\
-          Payload\": {\n          \"calendar_id.$\": \"$.calendar_id\"\n        }\n\
-          \      },\n      \"Next\": \"Pass Role Group\",\n      \"ResultPath\": null\n\
-          \    },\n    \"Pass Role Group\": {\n      \"Type\": \"Pass\",\n      \"\
-          Next\": \"Score Posts\",\n      \"Result\": {\n        \"role_group_id\"\
-          : 1\n      },\n      \"ResultPath\": \"$.role_group_id\"\n    },\n    \"\
-          Score Posts\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:states:::lambda:invoke\"\
-          ,\n      \"Parameters\": {\n        \"FunctionName\": \"${ScoringPostsArn}\"\
-          ,\n        \"Payload\": {\n          \"calendar_id.$\": \"$.calendar_id\"\
-          ,\n          \"role_group_id.$\": \"$.role_group_id.role_group_id\"\n  \
-          \      }\n      },\n      \"End\": true\n    }\n  }\n}"
+        - "{\n  \"StartAt\": \"Get Latest Month\",\n  \"States\": {\n    \"Get Latest\
+          \ Month\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:states:::lambda:invoke\"\
+          ,\n      \"Parameters\": {\n        \"FunctionName\": \"${LatestMonthArn}\"\
+          \n      },\n      \"OutputPath\": \"$.Payload\",\n      \"Next\": \"Ingest\
+          \ Posts\"\n    },\n    \"Ingest Posts\": {\n      \"Type\": \"Task\",\n\
+          \      \"Resource\": \"arn:aws:states:::lambda:invoke\",\n      \"Parameters\"\
+          : {\n        \"FunctionName\": \"${IngestingPostsArn}\",\n        \"Payload\"\
+          : {\n          \"calendar_id.$\": \"$.calendar_id\"\n        }\n      },\n\
+          \      \"ResultPath\": null,\n      \"Next\": \"Transform Posts\"\n    },\n\
+          \    \"Transform Posts\": {\n      \"Type\": \"Task\",\n      \"Resource\"\
+          : \"arn:aws:states:::lambda:invoke\",\n      \"Parameters\": {\n       \
+          \ \"FunctionName\": \"${TransformingPostsArn}\",\n        \"Payload\": {\n\
+          \          \"calendar_id.$\": \"$.calendar_id\"\n        }\n      },\n \
+          \     \"Next\": \"Score Posts\",\n      \"ResultPath\": null\n    },\n \
+          \   \"Score Posts\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"\
+          arn:aws:states:::lambda:invoke\",\n      \"Parameters\": {\n        \"FunctionName\"\
+          : \"${ScoringPostsArn}\",\n        \"Payload\": {\n          \"calendar_id.$\"\
+          : \"$.calendar_id\"\n        }\n      },\n      \"End\": true\n    }\n \
+          \ }\n}"
         - IngestingPostsArn:
             Fn::GetAtt:
             - IngestingPosts
@@ -121,3 +161,50 @@ Resources:
             Fn::GetAtt:
             - ScoringPosts
             - Arn
+          LatestMonthArn:
+            Fn::GetAtt:
+            - LatestMonth
+            - Arn
+  RuleRole:
+    Type: AWS::IAM::Role
+    DependsOn:
+    - StateMachine
+    Properties:
+      Description: Role to allow Cloudwatch to call State Machine
+      RoleName: Cloudwatch_Step_Function_Invocation
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - events.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: Invoke_State_Machine
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: states:StartExecution
+            Resource:
+              Ref: StateMachine
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    DependsOn:
+    - RuleRole
+    - StateMachine
+    Properties:
+      Description: ScheduledRule
+      ScheduleExpression: rate(4 hours)
+      State: ENABLED
+      Targets:
+      - Arn:
+          Ref: StateMachine
+        Id: Run_State_Machine
+        Input: '{"calendar_id": "dummy"}'
+        RoleArn:
+          Fn::GetAtt:
+          - RuleRole
+          - Arn

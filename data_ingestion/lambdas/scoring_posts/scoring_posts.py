@@ -45,7 +45,7 @@ def score_and_insert(calendar_id, role_group_id):
             results.append((row['post_uuid'], role_group_id, score, calendar_id, row['post_id']))
 
     with conn.cursor() as cur:
-        cur.execute('DELETE FROM post_score WHERE calendar_id="{calendar_id}"'.format(calendar_id=calendar_id))
+        cur.execute('DELETE FROM post_score WHERE calendar_id="{calendar_id}" and role_group_id={rg_id}'.format(calendar_id=calendar_id, rg_id=role_group_id))
         conn.commit()
         cur.executemany(
             """INSERT INTO post_score (post_uuid, role_group_id, score, calendar_id, post_id)

@@ -1,3 +1,4 @@
+sudo rm /etc/nginx/sites-enabled/default
 sudo cp nginx_setup/backend.service /etc/systemd/system
 sudo systemctl start backend
 sudo systemctl enable backend

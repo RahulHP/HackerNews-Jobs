@@ -7,5 +7,7 @@ source ~/.bashrc
 conda create -y --name webapp flask boto3 requests pymysql
 conda activate webapp
 conda install -y -c conda-forge uwsgi
+
+sudo apt-get update
 sudo apt install -y nginx
 # https://github.com/ContinuumIO/anaconda-issues/issues/11159

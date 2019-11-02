@@ -24,4 +24,6 @@ After SSHing into EC2
 5. `git clone https://github.com/RahulHP/HackerNews-Jobs.git`
 6. `cd HackerNews-Jobs`
 7. `bash setup.sh`
-8. `bash deployment.sh`
+8. Update environment values in `https.sh`, `nginx_setup/app`, `nginx_setup/app.service`, `nginx_setup/backend.service`
+9. `bash https.sh`
+10. `bash deployment.sh`

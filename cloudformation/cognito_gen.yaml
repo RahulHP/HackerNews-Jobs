@@ -9,8 +9,8 @@ Resources:
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
       AliasAttributes:
-        - preferred_username
-      MfaConfiguration: "OFF"
+      - preferred_username
+      MfaConfiguration: 'OFF'
       Policies:
         PasswordPolicy:
           MinimumLength: 6
@@ -20,69 +20,88 @@ Resources:
           RequireUppercase: false
           TemporaryPasswordValidityDays: 3
       UserPoolAddOns:
-         AdvancedSecurityMode: "OFF"
-      UserPoolName: !Sub "HN_jobs_user_pool_${env}"
+        AdvancedSecurityMode: 'OFF'
+      UserPoolName:
+        Fn::Sub: HN_jobs_user_pool_${env}
       LambdaConfig:
-        PreSignUp: !GetAtt AutoConfirm.Arn
+        PreSignUp:
+          Fn::GetAtt:
+          - AutoConfirm
+          - Arn
   UserClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       AllowedOAuthFlows:
-        - implicit
+      - implicit
       AllowedOAuthFlowsUserPoolClient: true
       AllowedOAuthScopes:
-        - phone
-        - email
-        - openid
-        - aws.cognito.signin.user.admin
-        - profile
-      ClientName: !Sub "HN_jobs_app_client_${env}"
+      - phone
+      - email
+      - openid
+      - aws.cognito.signin.user.admin
+      - profile
+      ClientName:
+        Fn::Sub: HN_jobs_app_client_${env}
       ExplicitAuthFlows:
-        - USER_PASSWORD_AUTH
+      - USER_PASSWORD_AUTH
       CallbackURLs:
-        - "https://github.com/RahulHP"
+      - https://github.com/RahulHP
       GenerateSecret: false
       RefreshTokenValidity: 30
       SupportedIdentityProviders:
-        - COGNITO
-      UserPoolId: !Ref UserPool
+      - COGNITO
+      UserPoolId:
+        Ref: UserPool
   CognitoUserPoolID:
     Type: AWS::SSM::Parameter
     Properties:
-      Description: "Cognito User Pool Client ID"
-      Name: !Sub "/${env}/cognito/userpoolid"
+      Description: Cognito User Pool Client ID
+      Name:
+        Fn::Sub: /${env}/cognito/userpoolid
       Type: String
-      Value: !Ref UserClient
+      Value:
+        Ref: UserClient
   AutoConfirmIAMRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: "2012-10-17"
+        Version: '2012-10-17'
         Statement:
-          - Effect: "Allow"
-            Principal:
-              Service:
-                - "lambda.amazonaws.com"
-            Action:
-              - "sts:AssumeRole"
-      Description: "IAM Role to allow Lambdas to use SSM"
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Description: IAM Role to allow Lambdas to use SSM
       ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-      RoleName: !Sub "AutoConfirm_Role_${env}"
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName:
+        Fn::Sub: AutoConfirm_Role_${env}
   AutoConfirm:
     Type: AWS::Lambda::Function
     Properties:
-      Code: ../userflow/autoconfirm
+      Code:
+        S3Bucket: hn-jobs-rahulhp-dev
+        S3Key: 8b17367bb0abd64efa83b49afb83ec14
       Handler: autoconfirm.lambda_handler
-      Role: !GetAtt AutoConfirmIAMRole.Arn
+      Role:
+        Fn::GetAtt:
+        - AutoConfirmIAMRole
+        - Arn
       Runtime: python3.6
       Description: Auto-Confirming Users
       Timeout: 30
-  # https://forums.aws.amazon.com/thread.jspa?messageID=748566
   AutoConfirmPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !GetAtt AutoConfirm.Arn
+      FunctionName:
+        Fn::GetAtt:
+        - AutoConfirm
+        - Arn
       Principal: cognito-idp.amazonaws.com
-      SourceArn: !GetAtt UserPool.Arn
+      SourceArn:
+        Fn::GetAtt:
+        - UserPool
+        - Arn

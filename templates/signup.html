@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>Sign Up</title>
+</head>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $("#submit").click(function () {
+            var password = $('#password').val();
+            var confirm_password = $('#confirmpassword').val();
+            if (password != confirm_password){
+                $('#alert').removeAttr('hidden');
+                $('#alert').text("Passwords do not match");
+                return false;
+            }
+            return true;
+        })
+    })
+</script>
+<body>
+
+<nav class="navbar navbar-light navbar-expand-md">
+    <div class="container-fluid"><a class="navbar-brand" href="/view"><strong>HN Job Tracker</strong></a>
+    </div>
+</nav>
+
+<div class="container">
+    <form method="post">
+        <div class="form-group">
+            <label for="username">User Name</label>
+            <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Confirm Password</label>
+            <input type="password" class="form-control" id="confirmpassword" name="confirmpassword" placeholder="Confirm Password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="submit">Submit</button>
+            <div class="alert alert-danger" role="alert" id="alert" {% if not error %} hidden {% endif %}>
+                {{ error }}
+            </div>
+    </form>
+</div>
+</body>
+</html>

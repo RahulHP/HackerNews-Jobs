@@ -1,0 +1,70 @@
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css">
+    <title>HN Job Tracker</title>
+
+</head>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<body>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                <h1 class="display-4 text-center">Hacker News Job Tracker</h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <p class="text-center mb-0">Track jobs posted in the monthly &quot;Who&#39;s Hiring&quot; threads on Hacker News<br /></p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                <p>Steps:</p>
+                <ol class="text-left">
+                    <li>Sign up on the right</li>
+                    <li>Select the role you are interested in (eg. Data Science, DevOps)</li>
+                    <li>View relevant jobs posted over the past few months</li>
+                    <li>Save jobs for later, mark them as &#39;applied&#39; or archive them if not relevant</li>
+                    <li>Keep visiting this site to view new jobs as they are posted!</li>
+                </ol>
+            </div>
+            <div class="col-6">
+                <div class="text-center border rounded border-primary">
+                    <ul class="nav nav-pills nav-justified">
+                        <li class="nav-item"><a role="tab" data-toggle="pill" class="nav-link {% if not login_error %} active {% endif %}" href="#signup">Sign Up</a></li>
+                        <li class="nav-item"><a role="tab" data-toggle="pill" class="nav-link {% if login_error %} active {% endif %}" href="#login">Login</a></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div role="tabpanel" class="tab-pane {% if not login_error %} active {% endif %}" id="signup">
+                            <form action="{{ url_for('.signup') }}" method="post">
+                                <div class="form-group"><label for="username">username</label><input type="text" class="form-control" name="username" id="username" placeholder="username" required /></div>
+                                <div class="form-group"><label>password</label><input type="password" class="form-control" name="password" id="password" placeholder="password" /></div><button class="btn btn-success btn-block border rounded" type="submit">Sign Up</button>
+                                <div class="alert alert-danger border rounded" role="alert" id="alert" {% if not signup_error %} hidden {% endif %}>
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+                                    <span>{{ signup_error }}</span>
+                                </div>
+                            </form>
+                        </div>
+                        <div role="tabpanel" class="tab-pane {% if login_error %} active {% endif %}" id="login">
+                            <form action="{{ url_for('.login') }}" method="post">
+                                <div class="form-group"><label for="username">username</label><input type="text" class="form-control" name="username" id="username" placeholder="username" required /></div>
+                                <div class="form-group"><label>password</label><input type="password" class="form-control" name="password" id="password" placeholder="password" /></div><button class="btn btn-success btn-block border rounded" type="submit">Login</button>
+                                <div class="alert alert-danger border rounded" role="alert" id="alert" {% if not login_error %} hidden {% endif %}>
+                                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">×</span></button>
+                                    <span>{{ login_error }}</span>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

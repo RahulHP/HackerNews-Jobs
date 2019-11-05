@@ -11,32 +11,38 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
 <body>
-<nav class="navbar navbar-light navbar-expand-md">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/view"><strong>HN Job Tracker</strong></a>
-        <a href="/logout"><strong>Logout</strong></a>
-    </div>
-</nav>
-
 <div class="container">
-    <div class="row">
-        <p>Please select the type of roles you are interested in. The jobs will be ranked according to the accompanying buzz words.</p>
-        <p>After pressing 'Submit', jobs from the latest month will be loaded for your viewing. The first time you view a month will take some time to load.</p>
-    </div>
-    <div class="row">
-        <div class="col-12">
-        <form method="post">
-            {% for role in role_groups %}
-            <div class="custom-control custom-radio">
-              <input type="radio" id="{{ role.role_group_id }}" name="role_group_selector" class="custom-control-input" value="{{ role.role_group_id }}" required>
-              <label class="custom-control-label" for="{{ role.role_group_id }}"><p><strong>{{ role.role_group_name }}</strong>: {{ role.buzz_words }}</p></label>
+        <div class="row">
+            <div class="col">
+                <h1 class="display-4 text-center">Hacker News Job Tracker</h1>
             </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-primary">Submit</button>
-        </form>
         </div>
-    </div>
+        <div class="row">
+            <div class="col">
+                <p>Welcome {{ username }}, you have successfully created an account.<br /></p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <p>Which type of roles are you looking for? These roles are currently supported - <br /></p>
+                <form method="post">
+                    <div class="card-deck">
+                        {% for role in role_groups %}
+                            <div class="card">
+                                <div class="card-body">
+                                    <h4 class="card-title">
+                                            <input type="radio"  id="{{ role.role_group_id }}" name="role_group_selector" class="form-check-input" value="{{ role.role_group_id }}" required/>
+                                        {{ role.role_group_name }}
+                                    </h4>
+                                    <h6 class="text-muted card-subtitle mb-2">{{ role.buzz_words }}</h6>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
 </div>
-
 </body>
 </html>

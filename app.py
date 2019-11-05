@@ -40,7 +40,7 @@ def login_required(f):
 def select_rolegroupid():
     if request.method == 'GET':
         role_groups = requests.get('{base_url}/role_groups'.format(base_url=base_url))
-        return render_template('select_rolegroupid.html', role_groups=role_groups.json()['role_groups'])
+        return render_template('select_rolegroupid.html', role_groups=role_groups.json()['role_groups'], username=session['username'])
     else:
         user_sub = get_user_sub()
         payload = {'role_group_id': request.form['role_group_selector']}
@@ -60,6 +60,11 @@ def view():
 
     jobs = requests.get('{base_url}/users/{user_id}/calendar/{calendar_id}/stage/{stage_id}/view'.format(base_url=base_url,user_id=user_sub,calendar_id=calendar_id,stage_id=stage_id))
     return render_template('view.html', posts=jobs.json()['results'], calendar_id=calendar_id, stage_id=stage_id, stages=STAGES, calendar=MONTHS)
+
+@app.route('/welcome')
+def welcome():
+    return render_template('landing.html', login_error=None, signup_error=None)
+
 
 @app.route('/')
 @login_required
@@ -137,13 +142,13 @@ def login():
             return response
         except cognito_client.exceptions.NotAuthorizedException:
             error = 'Wrong Username/Password'
-            return render_template('login.html', error=error)
+            return render_template('landing.html', login_error=error, signup_error=None)
         except cognito_client.exceptions.UserNotFoundException:
             error = 'User Not Found'
-            return render_template('login.html', error=error)
+            return render_template('landing.html', login_error=error, signup_error=None)
         except Exception as e:
             error = e
-            return render_template('login.html', error=error)
+            return render_template('landing.html', login_error=error, signup_error=None)
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -161,17 +166,32 @@ def signup():
             )
 
             if 'UserConfirmed' in response and response['UserConfirmed']:
-                return render_template('signup_success.html', username=user)
+                response = cognito_client.initiate_auth(
+                    ClientId=cognito_config['userpoolid'],
+                    AuthFlow='USER_PASSWORD_AUTH',
+                    AuthParameters={
+                        'USERNAME': user,
+                        'PASSWORD': password
+                    }
+                )
+                access_token = response['AuthenticationResult']['AccessToken']
+                session['access_token'] = access_token
+                refresh_token = response['AuthenticationResult']['RefreshToken']
+                session['refresh_token'] = refresh_token
+                session['username'] = user
+                return redirect(url_for('select_rolegroupid'))
             if 'UserConfirmed' in response and not response['UserConfirmed']:
-                return render_template('signup.html', error="Try Again")
+                return render_template('landing.html', login_error=None, signup_error="Try Again")
         except cognito_client.exceptions.UsernameExistsException:
             error = 'User already exists, try another user name'
-            return render_template('signup.html', error=error)
+            return render_template('landing.html', login_error=None, signup_error=error)
         except botocore.exceptions.ParamValidationError as e:
-            return render_template('signup.html', error=e)
+            error = e
+            return render_template('landing.html', login_error=None, signup_error=error)
         except Exception as e:
             print(type(e))
-            return render_template('signup.html', error=e)
+            error = e
+            return render_template('landing.html', login_error=None, signup_error=error)
 
 
 @app.route('/logout')

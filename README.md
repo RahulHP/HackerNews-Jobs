@@ -1,6 +1,7 @@
 Deployment Steps
 ```
-aws cloudformation deploy --template-file cloudformation/databases.yaml --stack-name databasesdev --parameter-overrides rdsuser=admin rdspassword=password rdsport=3306 env=dev
+aws cloudformation deploy --template-file cloudformation/job_database.yaml --stack-name jobdatabase --parameter-overrides rdsuser=admin rdspassword=password rdsport=3306
+aws cloudformation deploy --template-file cloudformation/user_database.yaml --stack-name userdatabasedev --parameter-overrides env=dev
 
 
 aws cloudformation package --template cloudformation/cognito.yaml --s3-bucket hn-jobs-rahulhp-dev --output-template-file cloudformation/cognito_gen.yaml

@@ -4,7 +4,7 @@ import boto3
 
 client = boto3.client('ssm')
 parameters = client.get_parameters_by_path(
-    Path='/{env}/rds'.format(env=os.environ['env']),
+    Path='/rds'.format(env=os.environ['env']),
     Recursive=True)
 
 config = dict()

@@ -5,7 +5,7 @@ import ast
 
 client = boto3.client('ssm')
 parameters = client.get_parameters_by_path(
-    Path='/dev/rds',
+    Path='/rds',
     Recursive=True)
 
 config = dict()

@@ -2,28 +2,6 @@ Parameters:
     env:
         Type: String
         Description: Environment
-    rdsuser:
-        Type: String
-    rdspassword:
-        Type: String
-    rdsport:
-        Type: Number
-Resources:
-  RDSDatabase:
-    Type: 'AWS::RDS::DBInstance'
-    Properties:
-      DBInstanceClass: db.t2.micro
-      Engine: mysql
-      EngineVersion: 5.7.22
-      StorageType: gp2
-      MasterUsername: !Ref rdsuser
-      MasterUserPassword: !Ref rdspassword
-      Port: !Ref rdsport
-      PubliclyAccessible: true
-      AllocatedStorage: 20
-      AllowMajorVersionUpgrade: true
-      AvailabilityZone: us-east-1a
-      BackupRetentionPeriod: 0
   UserPostStage:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -85,41 +63,6 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
-  RDSHost:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Description: "Host for RDS MySQL database"
-      Name: !Sub "/${env}/rds/host"
-      Type: String
-      Value: !GetAtt RDSDatabase.Endpoint.Address
-  RDSDBName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Description: "Database name for RDS MySQL database"
-      Name: !Sub "/${env}/rds/db_name"
-      Type: String
-      Value: "hn_jobs"
-  RDSPort:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Description: "User name for RDS MySQL database"
-      Name: !Sub "/${env}/rds/port"
-      Type: String
-      Value: !Ref rdsport
-  RDSUserName:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Description: "User name for RDS MySQL database"
-      Name: !Sub "/${env}/rds/name"
-      Type: String
-      Value: !Ref rdsuser
-  RDSUserPassword:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Description: "User name for RDS MySQL database"
-      Name: !Sub "/${env}/rds/password"
-      Type: String
-      Value: !Ref rdspassword
   DynamoDBUserPostStage:
     Type: AWS::SSM::Parameter
     Properties:
@@ -141,8 +84,3 @@ Resources:
       Name: !Sub "/${env}/dynamodb/user_rolegroupid"
       Type: String
       Value: !Sub "User_RoleGroupID_${env}"
-Outputs:
-  RDSConnectionAddress:
-    Value: !GetAtt RDSDatabase.Endpoint.Address
-  RDSPort:
-    Value: !GetAtt RDSDatabase.Endpoint.Port

@@ -45,13 +45,19 @@ def select_rolegroupid():
         user_sub = get_user_sub()
         payload = {'role_group_id': request.form['role_group_selector']}
         requests.post('{base_url}/users/{user_id}/rolegroupid'.format(base_url=base_url, user_id=user_sub), data=payload)
-        return redirect(url_for('index'))
+        return redirect(url_for('view'))
 
 
 @app.route('/view', methods=['GET'])
 @login_required
 def view():
     user_sub = get_user_sub()
+    if 'role_group_id' not in session or session['role_group_id'] is None:
+        role_group_id = requests.get('{base_url}/users/{user_id}/rolegroupid'.format(base_url=base_url, user_id=user_sub)).json()
+        if role_group_id['role_group_id'] is None:
+            return redirect(url_for('select_rolegroupid'))
+        else:
+            session['role_group_id'] = role_group_id['role_group_id']
 
     calendar_id = request.args.get('calendar_id', MONTHS[-1])
     stage_id = request.args.get('stage_id', 0)
@@ -61,19 +67,15 @@ def view():
     jobs = requests.get('{base_url}/users/{user_id}/calendar/{calendar_id}/stage/{stage_id}/view'.format(base_url=base_url,user_id=user_sub,calendar_id=calendar_id,stage_id=stage_id))
     return render_template('view.html', posts=jobs.json()['results'], calendar_id=calendar_id, stage_id=stage_id, stages=STAGES, calendar=MONTHS)
 
+
 @app.route('/welcome')
 def welcome():
     return render_template('landing.html', login_error=None, signup_error=None)
 
 
 @app.route('/')
-@login_required
 def index():
-    user_sub = get_user_sub()
-    role_group_id = requests.get('{base_url}/users/{user_id}/rolegroupid'.format(base_url=base_url, user_id=user_sub)).json()
-    if role_group_id['role_group_id'] is None:
-        return redirect(url_for('select_rolegroupid'))
-    return redirect(url_for('view'))
+    return redirect(url_for('welcome'))
 
 
 @app.route('/update_post', methods=['POST'])
@@ -83,6 +85,28 @@ def update_post_stage():
     requests.post('{base_url}/users/{user_id}/posts'.format(base_url=base_url, user_id=user_sub), data=payload)
     return {'code':200}
 
+
+def process_reset_password(username, password):
+    try:
+        response = cognito_client.respond_to_auth_challenge(
+            ClientId=cognito_config['userpoolid'],
+            ChallengeName='NEW_PASSWORD_REQUIRED',
+            Session=session['challenge_session'],
+            ChallengeResponses={
+                'USERNAME': username,
+                'NEW_PASSWORD': password
+            }
+        )
+        if 'AuthenticationResult' in response:
+            del session['challenge_session']
+            del session['challenge_username']
+            access_token = response['AuthenticationResult']['AccessToken']
+            session['access_token'] = access_token
+            return redirect(url_for('view')), None
+    except Exception as error:
+        return None, error
+
+
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'GET':
@@ -91,27 +115,43 @@ def reset_password():
         else:
             return redirect(url_for('login'))
     else:
-        try:
-            if request.form['password'] != request.form['confirm_password']:
-                return redirect(url_for('reset_password'))
-            response = cognito_client.respond_to_auth_challenge(
-                ClientId=cognito_config['userpoolid'],
-                ChallengeName='NEW_PASSWORD_REQUIRED',
-                Session=session['challenge_session'],
-                ChallengeResponses={
-                    'USERNAME': session['challenge_username'],
-                    'NEW_PASSWORD': request.form['password']
-                }
-            )
-            if 'AuthenticationResult' in response:
-                del session['challenge_session']
-                del session['challenge_username']
-                access_token = response['AuthenticationResult']['AccessToken']
-                session['access_token'] = access_token
-                return redirect(url_for('index'))
-            return response
-        except Exception as e:
-            return {'Code': 'Failure', 'Message': str(e)}
+        redirect_url, error = process_reset_password(session['challenge_username'], request.form['password'])
+        if redirect_url:
+            return redirect_url
+        if error:
+            return render_template('reset_password.html', error=error)
+
+
+def process_login(username, password):
+    try:
+        response = cognito_client.initiate_auth(
+            ClientId=cognito_config['userpoolid'],
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': password
+            }
+        )
+        # Reset Password required
+        if 'ChallengeName' in response and response['ChallengeName'] == 'NEW_PASSWORD_REQUIRED':
+            session['challenge_session'] = response['Session']
+            session['challenge_username'] = response['ChallengeParameters']['USER_ID_FOR_SRP']
+            return redirect(url_for('reset_password')), None
+        # Login success, redirecting to view
+        if 'AuthenticationResult' in response:
+            access_token = response['AuthenticationResult']['AccessToken']
+            session['access_token'] = access_token
+            refresh_token = response['AuthenticationResult']['RefreshToken']
+            session['refresh_token'] = refresh_token
+            return redirect(url_for('view')), None
+    except cognito_client.exceptions.NotAuthorizedException:
+        error = 'Wrong Username/Password'
+        return None, error
+    except cognito_client.exceptions.UserNotFoundException:
+        error = 'User Not Found'
+        return None, error
+    except Exception as error:
+        return None, error
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -120,35 +160,47 @@ def login():
         session.clear()
         return render_template('login.html', error=None)
     else:
-        try:
+        redirect_url, error = process_login(request.form['username'], request.form['password'])
+        if redirect_url:
+            return redirect_url
+        if error:
+            return render_template('login.html', error=error)
+
+
+def process_signup(username, password):
+    try:
+        response = cognito_client.sign_up(
+            ClientId=cognito_config['userpoolid'],
+            Username=username,
+            Password=password
+        )
+
+        if 'UserConfirmed' in response and response['UserConfirmed']:
             response = cognito_client.initiate_auth(
                 ClientId=cognito_config['userpoolid'],
                 AuthFlow='USER_PASSWORD_AUTH',
                 AuthParameters={
-                    'USERNAME': request.form['username'],
-                    'PASSWORD': request.form['password']
+                    'USERNAME': username,
+                    'PASSWORD': password
                 }
             )
-            if 'ChallengeName' in response and response['ChallengeName'] == 'NEW_PASSWORD_REQUIRED':
-                session['challenge_session'] = response['Session']
-                session['challenge_username'] = response['ChallengeParameters']['USER_ID_FOR_SRP']
-                return redirect(url_for('reset_password'))
-            if 'AuthenticationResult' in response:
-                access_token = response['AuthenticationResult']['AccessToken']
-                session['access_token'] = access_token
-                refresh_token = response['AuthenticationResult']['RefreshToken']
-                session['refresh_token'] = refresh_token
-                return redirect(url_for('index'))
-            return response
-        except cognito_client.exceptions.NotAuthorizedException:
-            error = 'Wrong Username/Password'
-            return render_template('landing.html', login_error=error, signup_error=None)
-        except cognito_client.exceptions.UserNotFoundException:
-            error = 'User Not Found'
-            return render_template('landing.html', login_error=error, signup_error=None)
-        except Exception as e:
-            error = e
-            return render_template('landing.html', login_error=error, signup_error=None)
+            access_token = response['AuthenticationResult']['AccessToken']
+            session['access_token'] = access_token
+            refresh_token = response['AuthenticationResult']['RefreshToken']
+            session['refresh_token'] = refresh_token
+            session['username'] = username
+            return redirect(url_for('select_rolegroupid')), None
+        if 'UserConfirmed' in response and not response['UserConfirmed']:
+            error = "Try Again"
+            return None, error
+    except cognito_client.exceptions.UsernameExistsException:
+        error = 'User already exists, try another user name'
+        return None, error
+    except botocore.exceptions.ParamValidationError as error:
+        return None, error
+    except Exception as error:  # Unknown error
+        print(error)
+        return None, error
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -156,42 +208,11 @@ def signup():
     if request.method == 'GET':
         return render_template('signup.html', error=None)
     else:
-        user = request.form['username']
-        password = request.form['password']
-        try:
-            response = cognito_client.sign_up(
-                ClientId=cognito_config['userpoolid'],
-                Username=user,
-                Password=password
-            )
-
-            if 'UserConfirmed' in response and response['UserConfirmed']:
-                response = cognito_client.initiate_auth(
-                    ClientId=cognito_config['userpoolid'],
-                    AuthFlow='USER_PASSWORD_AUTH',
-                    AuthParameters={
-                        'USERNAME': user,
-                        'PASSWORD': password
-                    }
-                )
-                access_token = response['AuthenticationResult']['AccessToken']
-                session['access_token'] = access_token
-                refresh_token = response['AuthenticationResult']['RefreshToken']
-                session['refresh_token'] = refresh_token
-                session['username'] = user
-                return redirect(url_for('select_rolegroupid'))
-            if 'UserConfirmed' in response and not response['UserConfirmed']:
-                return render_template('landing.html', login_error=None, signup_error="Try Again")
-        except cognito_client.exceptions.UsernameExistsException:
-            error = 'User already exists, try another user name'
-            return render_template('landing.html', login_error=None, signup_error=error)
-        except botocore.exceptions.ParamValidationError as e:
-            error = e
-            return render_template('landing.html', login_error=None, signup_error=error)
-        except Exception as e:
-            print(type(e))
-            error = e
-            return render_template('landing.html', login_error=None, signup_error=error)
+        redirect_url, error = process_signup(request.form['username'], request.form['password'])
+        if redirect_url:
+            return redirect_url
+        if error:
+            return render_template('signup.html', error=error)
 
 
 @app.route('/logout')
@@ -206,7 +227,8 @@ def get_user_sub():
         user = cognito_client.get_user(
             AccessToken=session['access_token']
         )
-    except cognito_client.exceptions.NotAuthorizedException as e:
+    except cognito_client.exceptions.NotAuthorizedException:
+        # Access token has expired
         del session['access_token']
         response = cognito_client.initiate_auth(
             ClientId=cognito_config['userpoolid'],

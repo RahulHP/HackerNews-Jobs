@@ -15,9 +15,8 @@ $(document).ready(function () {
         document.location.href = $(this).val();
     });
     $(".process-post").click(function () {
-        console.log("CLICKED");
         var job_div = $(this).closest('li.list-group-item');
-        var calendar = $(this).closest('div.container').attr('id');
+        var calendar = $(this).closest('div.jobs-container').attr('id');
         var job_id = job_div.attr('id');
         job_div.hide();
         $.ajax(
@@ -52,7 +51,7 @@ $(document).ready(function () {
 </nav>
 
 {% if posts[0] is not none %}
-<div class="container" id="{{ calendar_id }}">
+<div class="container jobs-container" id="{{ calendar_id }}">
 <ul class="list-group list-group-flush">
 
     {% for job in posts %}

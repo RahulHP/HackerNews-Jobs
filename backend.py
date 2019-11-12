@@ -12,10 +12,15 @@ import requests
 rds_config = get_ssm_dict('/rds')
 dynamodb_config = get_ssm_dict('/{env}/dynamodb'.format(env=os.environ['ENV']))
 
+if os.environ['DATA_ENV'].lower() == 'live':
+    db_name = rds_config['db_name']
+else:
+    db_name = '{db}_{env}'.format(db=rds_config['db_name'], env=os.environ['DATA_ENV'].lower())
+
 def get_connection():
     try:
         conn = pymysql.connect(host=rds_config['host'], user=rds_config['name'], passwd=rds_config['password'],
-                               db=rds_config['db_name'], port=int(rds_config['port']), connect_timeout=5)
+                               db=db_name, port=int(rds_config['port']), connect_timeout=5)
     except Exception as e:
         print(e)
         sys.exit()
@@ -44,7 +49,7 @@ def rds_conn_required(f):
 @rds_conn_required
 def list_role_groups():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
-        cur.execute('select * from hn_jobs.role_groups')
+        cur.execute('select * from role_groups')
     res = cur.fetchall()
     return {'role_groups': res}
 
@@ -54,7 +59,7 @@ def list_role_groups():
 def list_months():
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
-        select month from hn_jobs.calendar_thread
+        select month from calendar_thread
         order by month_id desc;
         """
         cur.execute(query)
@@ -193,7 +198,7 @@ def api_get_new_posts(calendar_id):
 def get_newer_posts(calendar_id, last_post):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
-        select post_id from hn_jobs.post_details where calendar_id="{calendar}" and post_id > {post}
+        select post_id from post_details where calendar_id="{calendar}" and post_id > {post}
         order by post_id desc
         """.format(calendar=calendar_id, post=last_post)
         cur.execute(query)
@@ -209,9 +214,9 @@ def get_post_details(calendar_id, post_ids, role_group_id):
     with conn.cursor(pymysql.cursors.DictCursor) as cur:
         query = """
         select details.post_id, post_text, post_time, poster_id, score from
-            (select * from hn_jobs.post_details where calendar_id='{cal_id}') details
+            (select * from post_details where calendar_id='{cal_id}') details
             inner join
-            (select * from hn_jobs.post_score where calendar_id='{cal_id}' and role_group_id={rg_id}) scores
+            (select * from post_score where calendar_id='{cal_id}' and role_group_id={rg_id}) scores
             on details.post_uuid = scores.post_uuid
             where scores.post_id in ({post_list})
             order by score desc, details.post_id desc;

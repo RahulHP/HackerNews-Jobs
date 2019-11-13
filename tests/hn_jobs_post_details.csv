@@ -1,7 +1,0 @@
-post_uuid,role,company,post_text,poster_id,post_time,parent_id,calendar_id,post_id
-test_2019|1,,,Post_test_2019|1,poster_1,1001,2001,test_2019,1
-test_2019|2,,,Post_test_2019|2,poster_2,1002,2001,test_2019,2
-test_2019|3,,,Post_test_2019|3,poster_3,1003,2001,test_2019,3
-test_2019|4,,,Post_test_2019|4,poster_4,1004,2001,test_2019,4
-test_2019|5,,,Post_test_2019|5,poster_5,1005,2001,test_2019,5
-test_2019|6,,,Post_test_2019|6,poster_6,1006,2001,test_2019,6

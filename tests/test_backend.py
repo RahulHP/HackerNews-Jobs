@@ -3,7 +3,6 @@ import sys
 sys.path.append('..')
 from backend import app, user_role_group_id_table, user_processed_post_table, user_stage_table
 
-
 class TrialTest(unittest.TestCase):
     def setUp(self):
         self.app = app.test_client()
@@ -12,16 +11,15 @@ class TrialTest(unittest.TestCase):
         response = self.app.get('/calendar')
         self.assertTrue('results' in response.json)
         months = response.json['results']
-        self.assertTrue(len(months) == 3)
-        self.assertTrue(months[0] == {'month': 'oct_2019'})
-        self.assertTrue(months[1] == {'month': 'sep_2019'})
-        self.assertTrue(months[2] == {'month': 'aug_2019'})
+        self.assertTrue(len(months) == 2)
+        self.assertTrue(months[0] == {'month': 'nov_2019'})
+        self.assertTrue(months[1] == {'month': 'oct_2019'})
 
     def test_rolegroup(self):
         response = self.app.get('/role_groups')
         self.assertTrue('role_groups' in response.json)
         rolegroups = response.json['role_groups']
-        self.assertTrue(len(rolegroups) == 3)
+        self.assertTrue(len(rolegroups) == 2)
 
 
 class RoleGroupTest(unittest.TestCase):
@@ -141,7 +139,7 @@ class CreatingRecords(unittest.TestCase):
         self.app = app.test_client()
 
     def test_get_new_posts(self):
-        calendar_id = 'test_2019'
+        calendar_id = 'nov_2019'
         last_post = 0
         response = self.app.get('/calendar/{calendar_id}/new_posts'
                                 .format(calendar_id=calendar_id), query_string={'last_post': last_post})
@@ -153,7 +151,7 @@ class CreatingRecords(unittest.TestCase):
 
     def test_batch_records_update(self):
         user_id = 'batch_user'
-        calendar_id = 'never_2019'
+        calendar_id = 'nov_2019'
         stage_id = 99
         posts = [x for x in range(10)]
         payload = {'user_id': user_id, 'calendar_id': calendar_id, 'stage_id': stage_id, 'post_id_batch': posts}
@@ -168,7 +166,7 @@ class CreatingRecords(unittest.TestCase):
 
     def test_post_ids_in_view(self):
         user_id = 'non_empty_user_postidview'
-        calendar_id = 'test_2019'
+        calendar_id = 'nov_2019'
         stage_id = 99
         response = self.app.get('/users/{user_id}/calendar/{calendar_id}/stage/{stage_id}/post_ids'
                                 .format(user_id=user_id, calendar_id=calendar_id, stage_id=stage_id))
@@ -177,7 +175,7 @@ class CreatingRecords(unittest.TestCase):
 
     def test_view(self):
         user_id = 'non_empty_view_user'
-        calendar_id = 'test_2019'
+        calendar_id = 'nov_2019'
         stage_id = 99
         response = self.app.get('/users/{user_id}/calendar/{calendar_id}/stage/{stage_id}/view'
                                 .format(user_id=user_id, calendar_id=calendar_id, stage_id=stage_id))
@@ -189,7 +187,7 @@ class CreatingRecords(unittest.TestCase):
 
     def test_record_creation_new_user(self):
         user_id = 'new_user_records'
-        calendar_id = 'test_2019'
+        calendar_id = 'nov_2019'
         response = self.app.post('/users/{user_id}/calendar/{calendar_id}/update_posts'
                                  .format(user_id=user_id, calendar_id=calendar_id))
         stage_id = 0

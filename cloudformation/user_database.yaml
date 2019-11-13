@@ -1,7 +1,8 @@
 Parameters:
-    env:
-        Type: String
-        Description: Environment
+  env:
+      Type: String
+      Description: Environment
+Resources:
   UserPostStage:
     Type: AWS::DynamoDB::Table
     Properties:

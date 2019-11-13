@@ -143,6 +143,7 @@ def process_login(username, password):
             session['access_token'] = access_token
             refresh_token = response['AuthenticationResult']['RefreshToken']
             session['refresh_token'] = refresh_token
+            session['username'] = username
             return redirect(url_for('view')), None
     except cognito_client.exceptions.NotAuthorizedException:
         error = 'Wrong Username/Password'

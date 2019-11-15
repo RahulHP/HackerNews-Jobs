@@ -59,7 +59,7 @@ def view():
         else:
             session['role_group_id'] = role_group_id['role_group_id']
 
-    calendar_id = request.args.get('calendar_id', MONTHS[-1])
+    calendar_id = request.args.get('calendar_id', MONTHS[0])
     stage_id = request.args.get('stage_id', 0)
 
     requests.post('{base_url}/users/{user_id}/calendar/{calendar_id}/update_posts'.format(base_url=base_url, user_id=user_sub,calendar_id=calendar_id))
@@ -220,7 +220,7 @@ def signup():
 @login_required
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('welcome'))
 
 
 def get_user_sub():

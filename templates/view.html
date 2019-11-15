@@ -15,14 +15,14 @@ $(document).ready(function () {
         document.location.href = $(this).val();
     });
     $(".process-post").click(function () {
+        var uuid = $(this).attr('id');
+        var splits = uuid.split('|');
         var job_div = $(this).closest('li.list-group-item');
-        var calendar = $(this).closest('div.jobs-container').attr('id');
-        var job_id = job_div.attr('id');
         job_div.hide();
         $.ajax(
             {
                 url: '{{ url_for('update_post_stage') }}',
-                data: {'calendar_id': calendar, 'stage_id': $(this).attr('id'), 'post_id':job_id},
+                data: {'calendar_id': splits[0], 'stage_id': splits[2], 'post_id':splits[1]},
                 type: 'POST'
             }
         )
@@ -44,10 +44,10 @@ $(document).ready(function () {
                     </form>
                 </li>
                 {% for stage in stages %}
-                <li role="presentation" class="nav-item"><a class="nav-link {% if stage[0] == stage_id %} active {% endif %}" href="{{ url_for('view', calendar_id=calendar_id, stage_id=stage[0]) }}">{{ stage[1] }}</a></li>
+                <li role="presentation" class="nav-item"><a class="nav-link {% if stage[0] == stage_id %} active {% endif %}" id="navigate_{{ stage[0] }}" href="{{ url_for('view', calendar_id=calendar_id, stage_id=stage[0]) }}">{{ stage[1] }}</a></li>
                 {% endfor %}
             </ul>
-        </div><a class="btn btn-outline-primary" href="/logout">Logout</a></div>
+        </div><a class="btn btn-outline-primary" href="/logout" id="logout">Logout</a></div>
 </nav>
 
 {% if posts[0] is not none %}
@@ -74,7 +74,7 @@ $(document).ready(function () {
                     <div role="group" class="btn-group">
                         {% for stage in stages[1:] %}
                         {% if stage[0] != stage_id %}
-                            <button class="process-post btn btn-primary text-nowrap border rounded" type="button" id="{{stage[0]}}">{{stage[2]}}</button>
+                            <button class="process-post btn btn-primary text-nowrap border rounded" type="button" id="{{ calendar_id }}|{{ job.post_id }}|{{stage[0]}}">{{stage[2]}}</button>
                         {% endif %}
                         {% endfor %}
                     </div>
@@ -98,7 +98,7 @@ $(document).ready(function () {
 </ul>
 </div>
 {% else %}
-    <div class="container">
+    <div class="container jobs-container" id="empty_jobs">
         <div class="row">
             <div class="col">
                 No posts found for current calendar and stage.
